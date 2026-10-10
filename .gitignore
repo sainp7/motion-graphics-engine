@@ -1,0 +1,38 @@
+# dependencies and build output
+node_modules/
+out/
+.remotion/
+src/registry.generated.ts
+
+# per-video generated audio and timing (npm run voice)
+public/videos/
+
+# house sound kit and music, generated deterministically by `npm run house-audio` (npm run setup does it)
+public/sfx/
+public/music/
+
+# voice-cloning reference recordings (library/voice/<name>/*.wav): a recording of your voice is
+# enough to clone it, so keep the audio off GitHub. The voice's config and transcripts can be committed.
+library/voice/**/*.wav
+library/voice/**/*.flac
+library/voice/**/*.mp3
+library/voice/**/*.m4a
+library/voice/**/*.aiff
+
+# to keep unreleased episodes private while the repo is public, uncomment: commits only the
+# reference episode (CI and the skills use it)
+
+# python
+__pycache__/
+.venv*/
+
+# local Claude Code settings (copy of docs/claude-settings.json, made by npm run setup)
+.claude/settings.local.json
+
+# editors, OS, secrets
+.idea/
+.vscode/
+.DS_Store
+*.log
+.env
+.env.*

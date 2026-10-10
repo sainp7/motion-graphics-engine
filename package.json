@@ -1,0 +1,62 @@
+{
+  "name": "motion-graphics-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A programmatic motion design studio for system design explainer videos, operated by Claude.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Paras Sain",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "studio": "tsx scripts/sync.ts && remotion studio src/index.ts",
+    "new": "tsx scripts/new.ts",
+    "check": "tsx scripts/check.ts",
+    "voice": "tsx scripts/voice.ts",
+    "sheet": "tsx scripts/sheet.ts",
+    "render": "tsx scripts/render.ts",
+    "qc": "tsx scripts/qc.ts",
+    "publish-kit": "tsx scripts/publish.ts",
+    "sync": "tsx scripts/sync.ts",
+    "house-audio": "uv run audio/house_sfx.py && uv run audio/house_drive.py && uv run audio/house_music.py",
+    "typecheck": "tsx scripts/sync.ts && tsc --noEmit",
+    "postinstall": "tsx scripts/sync.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/overpass": "5.3.0",
+    "@fontsource-variable/overpass-mono": "5.3.0",
+    "@remotion/cli": "4.0.534",
+    "@remotion/fonts": "^4.0.534",
+    "@remotion/layout-utils": "4.0.534",
+    "@remotion/media": "^4.0.534",
+    "@remotion/paths": "4.0.534",
+    "lucide-react": "1.55.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.534",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@remotion/bundler": "4.0.534",
+    "@remotion/renderer": "4.0.534",
+    "@types/node": "22.20.5",
+    "@types/react": "19.2.18",
+    "sharp": "^0.35.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sainp7/motion-graphics-engine.git"
+  },
+  "keywords": [
+    "remotion",
+    "motion-graphics",
+    "system-design",
+    "claude-code",
+    "video",
+    "tts"
+  ]
+}

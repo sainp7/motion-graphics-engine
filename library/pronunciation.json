@@ -1,0 +1,29 @@
+{
+  "$comment": "How the narrator should say tech terms. Applied to narration only (never to on-screen text), as whole words, case-insensitive. Changing an entry re-voices the beats that use it.",
+  "words": {
+    "nginx": "engine x",
+    "PostgreSQL": "post-gress Q L",
+    "Postgres": "post-gress",
+    "MySQL": "my S Q L",
+    "SQL": "sequel",
+    "NoSQL": "no sequel",
+    "gRPC": "G R P C",
+    "OAuth": "oh auth",
+    "JWT": "J W T",
+    "k8s": "Kubernetes",
+    "kubectl": "cube control",
+    "Redis": "red-iss",
+    "TTL": "T T L",
+    "TTLs": "T T Ls",
+    "p99": "p ninety-nine",
+    "p95": "p ninety-five",
+    "LRU": "L R U",
+    "CDN": "C D N",
+    "DNS": "D N S",
+    "async": "a-sink",
+    "etcd": "et-see-dee",
+    "Kafka": "Kafka",
+    "idempotent": "eye-dem-potent",
+    "sainp7": "SAN P 7"
+  }
+}

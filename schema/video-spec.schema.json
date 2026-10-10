@@ -1,0 +1,1832 @@
+{
+  "title": "Video spec",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "number",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "Lowercase identifier"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "format": {
+      "default": "landscape",
+      "type": "string",
+      "enum": [
+        "landscape",
+        "portrait"
+      ]
+    },
+    "theme": {
+      "default": "dark",
+      "type": "string",
+      "enum": [
+        "dark",
+        "light"
+      ]
+    },
+    "fps": {
+      "default": 30,
+      "anyOf": [
+        {
+          "type": "number",
+          "const": 30
+        },
+        {
+          "type": "number",
+          "const": 60
+        }
+      ]
+    },
+    "voice": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "engine": {
+          "default": "qwen3",
+          "type": "string",
+          "enum": [
+            "qwen3",
+            "kokoro",
+            "elevenlabs",
+            "say",
+            "espeak",
+            "estimate"
+          ]
+        },
+        "voice": {
+          "default": "Aiden",
+          "type": "string"
+        },
+        "speed": {
+          "default": 1,
+          "type": "number",
+          "minimum": 0.6,
+          "maximum": 1.6
+        }
+      },
+      "additionalProperties": false
+    },
+    "music": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "track": {
+          "default": "transit-drive",
+          "description": "Key in library/music/manifest.json, or null",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volume": {
+          "default": 0.22,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "lines": {
+      "default": {},
+      "description": "Named lines (flows) used across the video, shown in the legend",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_-]*$",
+        "description": "Lowercase identifier"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string",
+            "enum": [
+              "blue",
+              "orange",
+              "green",
+              "red",
+              "violet",
+              "yellow",
+              "teal"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 24
+          }
+        },
+        "required": [
+          "color",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "diagrams": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_-]*$",
+        "description": "Lowercase identifier"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "nodes": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Lowercase identifier"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "client",
+                    "mobile",
+                    "browser",
+                    "user",
+                    "users",
+                    "dns",
+                    "cdn",
+                    "lb",
+                    "gateway",
+                    "service",
+                    "server",
+                    "worker",
+                    "cache",
+                    "db",
+                    "replica",
+                    "queue",
+                    "stream",
+                    "storage",
+                    "search",
+                    "auth",
+                    "cron",
+                    "metrics",
+                    "cloud",
+                    "generic"
+                  ],
+                  "description": "Picks the icon"
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 18,
+                  "description": "Station name, ≤ 18 chars, e.g. 'Load balancer'"
+                },
+                "sub": {
+                  "description": "Secondary detail, e.g. 'Redis · 6 GB'",
+                  "type": "string",
+                  "maxLength": 26
+                },
+                "at": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "Centre position in grid units [x, y]; the frame is 16 × 9 units"
+                },
+                "size": {
+                  "default": "md",
+                  "type": "string",
+                  "enum": [
+                    "sm",
+                    "md",
+                    "lg"
+                  ]
+                },
+                "line": {
+                  "description": "Accent for the station ring when highlighted",
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "label",
+                "at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "edges": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "Defaults to \"<from>-<to>\"",
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                },
+                "from": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Lowercase identifier"
+                },
+                "to": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Lowercase identifier"
+                },
+                "label": {
+                  "description": "Small chip at the middle of the track",
+                  "type": "string",
+                  "maxLength": 18
+                },
+                "style": {
+                  "default": "solid",
+                  "description": "dashed = asynchronous",
+                  "type": "string",
+                  "enum": [
+                    "solid",
+                    "dashed"
+                  ]
+                },
+                "arrow": {
+                  "default": "end",
+                  "type": "string",
+                  "enum": [
+                    "end",
+                    "both",
+                    "none"
+                  ]
+                },
+                "lane": {
+                  "default": 0,
+                  "description": "Parallel offset for request/response pairs",
+                  "type": "integer",
+                  "minimum": -2,
+                  "maximum": 2
+                },
+                "route": {
+                  "default": "auto",
+                  "description": "auto = octilinear (45° bends)",
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "straight",
+                    "elbow"
+                  ]
+                },
+                "fromSide": {
+                  "type": "string",
+                  "enum": [
+                    "left",
+                    "right",
+                    "top",
+                    "bottom"
+                  ]
+                },
+                "toSide": {
+                  "type": "string",
+                  "enum": [
+                    "left",
+                    "right",
+                    "top",
+                    "bottom"
+                  ]
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "groups": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Lowercase identifier"
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 24
+                },
+                "nodes": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                    "description": "Lowercase identifier"
+                  }
+                },
+                "line": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "nodes"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "nodes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "thumbnail": {
+      "type": "object",
+      "properties": {
+        "lines": {
+          "minItems": 1,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "line": {
+          "default": "orange",
+          "type": "string",
+          "minLength": 1,
+          "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+        }
+      },
+      "required": [
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "segments": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase identifier"
+          },
+          "choreo": {
+            "type": "string",
+            "enum": [
+              "cold-open",
+              "big-number",
+              "myth",
+              "failure",
+              "chapter",
+              "build",
+              "flow",
+              "deep-dive",
+              "compare",
+              "insight",
+              "recap",
+              "outro",
+              "solution"
+            ],
+            "description": "The segment's intent; drives motion, music, sfx and text limits"
+          },
+          "chapter": {
+            "description": "Starts a YouTube chapter with this title",
+            "type": "string",
+            "maxLength": 40
+          },
+          "beats": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "Optional id, referable as a CueRef",
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                },
+                "say": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Narration with {words|cue} cue marks and [pause 0.6] marks"
+                },
+                "pace": {
+                  "description": "Delivery speed; defaults to the choreography's pace",
+                  "type": "string",
+                  "enum": [
+                    "slow",
+                    "normal",
+                    "brisk",
+                    "rush"
+                  ]
+                },
+                "style": {
+                  "description": "Emotional delivery; used by expressive engines (elevenlabs, qwen3). Defaults to the choreography's style",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "calm",
+                    "serious",
+                    "urgent",
+                    "excited",
+                    "warm"
+                  ]
+                },
+                "pauseAfter": {
+                  "description": "Silence after this beat (s); defaults to the choreography",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 5
+                }
+              },
+              "required": [
+                "say"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Narration for this segment, in order"
+          },
+          "scene": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "statement"
+                  },
+                  "lines": {
+                    "minItems": 1,
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "description": "Explicit line breaks; signage, not sentences"
+                  },
+                  "align": {
+                    "description": "Defaults to the choreography's alignment",
+                    "type": "string",
+                    "enum": [
+                      "left",
+                      "center"
+                    ]
+                  },
+                  "size": {
+                    "description": "Defaults to the choreography's size",
+                    "type": "string",
+                    "enum": [
+                      "xl",
+                      "lg",
+                      "md"
+                    ]
+                  },
+                  "reveal": {
+                    "description": "When each line appears; defaults to a stagger from the start",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                      "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                    }
+                  },
+                  "underline": {
+                    "description": "Draw a track under the block in this line colour",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "description": "Small supporting line, e.g. a source",
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "line": {
+                    "description": "Accent for plates without an explicit colour",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "actions": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "strike"
+                            },
+                            "index": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "dim-line"
+                            },
+                            "index": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "index"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "sfx"
+                            },
+                            "sound": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "sound"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "lines"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "stat"
+                  },
+                  "value": {
+                    "type": "number"
+                  },
+                  "from": {
+                    "default": 0,
+                    "type": "number"
+                  },
+                  "decimals": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "prefix": {
+                    "type": "string",
+                    "maxLength": 4
+                  },
+                  "suffix": {
+                    "description": "Unit shown after the number, e.g. 'req/s'",
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "What the number means (on-screen text markup allowed)"
+                  },
+                  "at": {
+                    "default": "start",
+                    "description": "When the counter starts",
+                    "type": "string",
+                    "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$"
+                  },
+                  "countSeconds": {
+                    "default": 1.2,
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "line": {
+                    "description": "Colour of the number; default is text colour",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "bars": {
+                    "default": [],
+                    "description": "Horizontal comparison bars, scaled to the largest value",
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "maxLength": 32
+                        },
+                        "value": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "line": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                        },
+                        "at": {
+                          "type": "string",
+                          "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                          "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "value",
+                        "line"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "type",
+                  "value",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "diagram"
+                  },
+                  "heading": {
+                    "description": "Large signage top-left, e.g. 'Fix 1: coalesce the misses'",
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "diagram": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                    "description": "Key of spec.diagrams. Consecutive segments using the same diagram continue its state."
+                  },
+                  "title": {
+                    "description": "Small signage chip, top-left",
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "legend": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "fresh": {
+                    "default": false,
+                    "description": "Start from an empty diagram instead of continuing earlier segments",
+                    "type": "boolean"
+                  },
+                  "actions": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "show"
+                            },
+                            "targets": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              },
+                              "description": "Node, edge or group ids"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "targets"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "hide"
+                            },
+                            "targets": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              },
+                              "description": "Node, edge or group ids"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "targets"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "flow"
+                            },
+                            "path": {
+                              "minItems": 2,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              },
+                              "description": "Node ids in travel order; consecutive nodes must share an edge"
+                            },
+                            "line": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                            },
+                            "packets": {
+                              "default": 1,
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 12
+                            },
+                            "label": {
+                              "description": "Chip that rides with the first packet, e.g. 'GET /user/42'",
+                              "type": "string",
+                              "maxLength": 20
+                            },
+                            "stream": {
+                              "default": false,
+                              "description": "Keep sending packets until the segment ends",
+                              "type": "boolean"
+                            },
+                            "persist": {
+                              "default": true,
+                              "description": "Leave the coloured line painted after the packet passes",
+                              "type": "boolean"
+                            },
+                            "speed": {
+                              "default": 1,
+                              "type": "number",
+                              "minimum": 0.25,
+                              "maximum": 4
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "path",
+                            "line"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "highlight"
+                            },
+                            "targets": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              },
+                              "description": "Node, edge or group ids"
+                            },
+                            "line": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "targets"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "dim"
+                            },
+                            "targets": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              }
+                            },
+                            "except": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              }
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "reset"
+                            },
+                            "targets": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              }
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "clear-lines"
+                            },
+                            "line": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "fail"
+                            },
+                            "targets": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              },
+                              "description": "Node, edge or group ids"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "targets"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "recover"
+                            },
+                            "targets": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              },
+                              "description": "Node, edge or group ids"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "targets"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "badge"
+                            },
+                            "target": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                              "description": "Lowercase identifier"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 14
+                            },
+                            "line": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                            },
+                            "until": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "target",
+                            "text"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "pulse"
+                            },
+                            "targets": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              },
+                              "description": "Node, edge or group ids"
+                            },
+                            "line": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "targets"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "focus"
+                            },
+                            "targets": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                                "description": "Lowercase identifier"
+                              },
+                              "description": "Node, edge or group ids"
+                            },
+                            "zoom": {
+                              "type": "number",
+                              "minimum": 0.7,
+                              "maximum": 2.2
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "targets"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "fit"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "sfx"
+                            },
+                            "sound": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "sound"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "diagram"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "sequence"
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "actors": {
+                    "minItems": 2,
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                          "description": "Lowercase identifier"
+                        },
+                        "label": {
+                          "type": "string",
+                          "maxLength": 16
+                        },
+                        "kind": {
+                          "default": "generic",
+                          "type": "string",
+                          "enum": [
+                            "client",
+                            "mobile",
+                            "browser",
+                            "user",
+                            "users",
+                            "dns",
+                            "cdn",
+                            "lb",
+                            "gateway",
+                            "service",
+                            "server",
+                            "worker",
+                            "cache",
+                            "db",
+                            "replica",
+                            "queue",
+                            "stream",
+                            "storage",
+                            "search",
+                            "auth",
+                            "cron",
+                            "metrics",
+                            "cloud",
+                            "generic"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "messages": {
+                    "minItems": 1,
+                    "maxItems": 9,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                          "description": "Lowercase identifier"
+                        },
+                        "to": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                          "description": "Lowercase identifier"
+                        },
+                        "label": {
+                          "type": "string",
+                          "maxLength": 28
+                        },
+                        "code": {
+                          "default": false,
+                          "description": "Render the label in mono, for literal requests",
+                          "type": "boolean"
+                        },
+                        "line": {
+                          "default": "blue",
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                        },
+                        "style": {
+                          "default": "solid",
+                          "description": "dashed = response",
+                          "type": "string",
+                          "enum": [
+                            "solid",
+                            "dashed"
+                          ]
+                        },
+                        "at": {
+                          "type": "string",
+                          "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                          "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                        },
+                        "badge": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "maxLength": 12
+                            },
+                            "line": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                            }
+                          },
+                          "required": [
+                            "text",
+                            "line"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "to",
+                        "at"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "actors",
+                  "messages"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "compare"
+                  },
+                  "left": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "maxLength": 22
+                      },
+                      "line": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                      },
+                      "at": {
+                        "type": "string",
+                        "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                        "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                      },
+                      "items": {
+                        "minItems": 1,
+                        "maxItems": 5,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            "verdict": {
+                              "default": "neutral",
+                              "type": "string",
+                              "enum": [
+                                "pro",
+                                "con",
+                                "neutral"
+                              ]
+                            },
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                            }
+                          },
+                          "required": [
+                            "text"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "line",
+                      "items"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "right": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "maxLength": 22
+                      },
+                      "line": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                      },
+                      "at": {
+                        "type": "string",
+                        "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                        "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                      },
+                      "items": {
+                        "minItems": 1,
+                        "maxItems": 5,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            "verdict": {
+                              "default": "neutral",
+                              "type": "string",
+                              "enum": [
+                                "pro",
+                                "con",
+                                "neutral"
+                              ]
+                            },
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                            }
+                          },
+                          "required": [
+                            "text"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "line",
+                      "items"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "verdict": {
+                    "type": "object",
+                    "properties": {
+                      "side": {
+                        "type": "string",
+                        "enum": [
+                          "left",
+                          "right"
+                        ]
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 40
+                      },
+                      "at": {
+                        "type": "string",
+                        "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                        "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                      }
+                    },
+                    "required": [
+                      "side",
+                      "text",
+                      "at"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "type",
+                  "left",
+                  "right"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "list"
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "numbered": {
+                    "default": false,
+                    "description": "Only when the items are a real sequence",
+                    "type": "boolean"
+                  },
+                  "line": {
+                    "default": "orange",
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                  },
+                  "items": {
+                    "minItems": 1,
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "maxLength": 40
+                        },
+                        "detail": {
+                          "type": "string",
+                          "maxLength": 70
+                        },
+                        "at": {
+                          "type": "string",
+                          "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                          "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                        }
+                      },
+                      "required": [
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "items"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "chapter"
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  "short": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 22
+                  },
+                  "subtitle": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "line": {
+                    "default": "orange",
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                  }
+                },
+                "required": [
+                  "type",
+                  "title"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "code"
+                  },
+                  "heading": {
+                    "description": "Large signage above the code, e.g. 'Fix 1: coalesce the misses'",
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "title": {
+                    "description": "Small file name inside the panel",
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "lines": {
+                    "minItems": 1,
+                    "maxItems": 14,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 64
+                    }
+                  },
+                  "actions": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "highlight"
+                            },
+                            "lines": {
+                              "type": "array",
+                              "prefixItems": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              ],
+                              "items": false,
+                              "minItems": 2,
+                              "maxItems": 2
+                            },
+                            "line": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "lines"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "reset"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "sfx"
+                            },
+                            "sound": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "sound"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "lines"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "outro"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "description": "The closing line (on-screen markup allowed)"
+                  },
+                  "handle": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 30,
+                    "description": "e.g. @sainp7"
+                  },
+                  "cta": {
+                    "default": "Follow for more system design",
+                    "type": "string",
+                    "maxLength": 48
+                  },
+                  "next": {
+                    "description": "Teaser for the next episode",
+                    "type": "string",
+                    "maxLength": 48
+                  }
+                },
+                "required": [
+                  "type",
+                  "text",
+                  "handle"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "hold": {
+            "default": 0,
+            "description": "Extra seconds of picture after the choreography's tail",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "transition": {
+            "description": "Overrides the choreography's exit",
+            "type": "string",
+            "enum": [
+              "cut",
+              "fade",
+              "line-wipe"
+            ]
+          },
+          "sfx": {
+            "default": true,
+            "description": "Automatic sound effects for this segment",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "choreo",
+          "beats",
+          "scene"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "version",
+    "id",
+    "title",
+    "segments"
+  ],
+  "additionalProperties": false
+}

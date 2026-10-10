@@ -1,0 +1,10 @@
+{
+  "name": "studio",
+  "displayName": "Motion Graphics Studio",
+  "version": "0.1.0",
+  "description": "Turns an idea or a few links into a 3–4 minute system design explainer: research, script, choreographed motion graphics, narration, visual QA, render and a publish kit.",
+  "author": { "name": "Paras Sain", "url": "https://github.com/sainp7" },
+  "repository": "https://github.com/sainp7/motion-graphics-engine",
+  "license": "MIT",
+  "keywords": ["remotion", "motion-graphics", "video", "system-design", "youtube"]
+}

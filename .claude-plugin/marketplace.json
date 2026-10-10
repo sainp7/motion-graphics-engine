@@ -1,0 +1,12 @@
+{
+  "name": "motion-graphics-engine",
+  "description": "The studio plugin for this repo: Claude as the motion designer for system design explainer videos.",
+  "owner": { "name": "Paras Sain", "url": "https://github.com/sainp7" },
+  "plugins": [
+    {
+      "name": "studio",
+      "source": "./plugin",
+      "description": "Research, script, choreograph, voice, review, render and publish system design explainer videos from a JSON spec."
+    }
+  ]
+}

@@ -1,0 +1,895 @@
+{
+  "$schema": "../../schema/video-spec.schema.json",
+  "version": 1,
+  "id": "001-cache-stampede",
+  "title": "The cache stampede: how one expiring key takes down a database",
+  "theme": "dark",
+  "voice": {
+    "engine": "qwen3",
+    "voice": "Aiden",
+    "speed": 1
+  },
+  "music": {
+    "track": "transit-drive",
+    "volume": 0.22
+  },
+  "lines": {
+    "read": {
+      "color": "blue",
+      "label": "Read path"
+    },
+    "miss": {
+      "color": "orange",
+      "label": "Cache miss"
+    },
+    "fill": {
+      "color": "teal",
+      "label": "Write back"
+    },
+    "herd": {
+      "color": "red",
+      "label": "Stampede"
+    },
+    "fix": {
+      "color": "green",
+      "label": "One query"
+    }
+  },
+  "diagrams": {
+    "cache": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "label": "Users",
+          "at": [
+            2,
+            4.6
+          ]
+        },
+        {
+          "id": "api",
+          "kind": "service",
+          "label": "App server",
+          "at": [
+            6.6,
+            4.6
+          ]
+        },
+        {
+          "id": "cache",
+          "kind": "cache",
+          "label": "Cache",
+          "sub": "Redis",
+          "at": [
+            11.6,
+            2.7
+          ]
+        },
+        {
+          "id": "db",
+          "kind": "db",
+          "label": "Database",
+          "sub": "Postgres",
+          "at": [
+            11.6,
+            6.5
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "users",
+          "to": "api"
+        },
+        {
+          "from": "api",
+          "to": "cache"
+        },
+        {
+          "from": "api",
+          "to": "db"
+        }
+      ]
+    }
+  },
+  "thumbnail": {
+    "lines": [
+      "One key expires.",
+      "The {database|red} dies."
+    ],
+    "line": "red"
+  },
+  "segments": [
+    {
+      "id": "hook",
+      "choreo": "cold-open",
+      "beats": [
+        {
+          "pace": "brisk",
+          "style": "urgent",
+          "say": "Nine p.m. [pause 0.2] One cache key expires. [pause 0.4]"
+        },
+        {
+          "pace": "rush",
+          "style": "urgent",
+          "say": "Thirty seconds later, your database is {down|c-down}. [pause 0.5]"
+        },
+        {
+          "pace": "normal",
+          "style": "excited",
+          "say": "Nothing was deployed. Nothing was misconfigured. [pause 0.3] So what happened?"
+        }
+      ],
+      "scene": {
+        "type": "statement",
+        "lines": [
+          "One key expires.",
+          "The {database|red} dies."
+        ],
+        "reveal": [
+          "b1",
+          "c-down"
+        ],
+        "underline": "red"
+      }
+    },
+    {
+      "id": "stakes",
+      "choreo": "big-number",
+      "beats": [
+        {
+          "say": "Your cache is absorbing {fifty thousand reads|c-reads} a second. [pause 0.3] The database behind it can take about {five thousand|c-cap}.",
+          "pace": "brisk"
+        }
+      ],
+      "scene": {
+        "type": "stat",
+        "value": 50000,
+        "suffix": "reads/s",
+        "label": "absorbed by {the cache|blue}",
+        "at": "b1",
+        "bars": [
+          {
+            "label": "Database capacity",
+            "value": 5000,
+            "line": "green",
+            "at": "c-cap"
+          },
+          {
+            "label": "Peak traffic",
+            "value": 50000,
+            "line": "red",
+            "at": "c-cap+0.7"
+          }
+        ]
+      }
+    },
+    {
+      "id": "myth",
+      "choreo": "myth",
+      "beats": [
+        {
+          "say": "We treat the cache like a {safety net|c-net}. [pause 0.4] It {isn't|c-not} one."
+        },
+        {
+          "say": "It's a {speed layer|c-speed}, and it can fail for everyone at once."
+        }
+      ],
+      "scene": {
+        "type": "statement",
+        "lines": [
+          "A cache keeps you ~~safe~~.",
+          "It keeps you {fast|green}."
+        ],
+        "reveal": [
+          "b1",
+          "c-speed"
+        ],
+        "actions": [
+          {
+            "at": "c-not",
+            "do": "strike"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ch-aside",
+      "choreo": "chapter",
+      "chapter": "What is cache-aside?",
+      "beats": [
+        {
+          "pace": "normal",
+          "style": "warm",
+          "say": "First: what is cache-aside? [pause 0.2] It's how most systems use a cache today."
+        }
+      ],
+      "scene": {
+        "type": "chapter",
+        "number": 1,
+        "title": "What is cache-aside?",
+        "subtitle": "Check the cache, then the database",
+        "line": "blue",
+        "short": "Cache-aside"
+      }
+    },
+    {
+      "id": "build",
+      "choreo": "build",
+      "beats": [
+        {
+          "say": "A request {arrives|c-users} at your {app server|c-api}."
+        },
+        {
+          "say": "Before touching the database, the app asks the {cache|c-cache}: do you already have this?"
+        },
+        {
+          "say": "The {database|c-db} is only the fallback. [pause 0.3]"
+        }
+      ],
+      "scene": {
+        "type": "diagram",
+        "diagram": "cache",
+        "title": "Cache-aside",
+        "actions": [
+          {
+            "at": "c-users",
+            "do": "show",
+            "targets": [
+              "users"
+            ]
+          },
+          {
+            "at": "c-api",
+            "do": "show",
+            "targets": [
+              "api"
+            ]
+          },
+          {
+            "at": "c-cache",
+            "do": "show",
+            "targets": [
+              "cache"
+            ]
+          },
+          {
+            "at": "c-db",
+            "do": "show",
+            "targets": [
+              "db"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "hit",
+      "choreo": "flow",
+      "beats": [
+        {
+          "say": "Most of the time, the cache {has it|c-hit}. That's a hit. It comes back in about a millisecond, and the database {never hears about it|c-never}."
+        }
+      ],
+      "scene": {
+        "type": "diagram",
+        "diagram": "cache",
+        "actions": [
+          {
+            "at": "start+0.2",
+            "do": "flow",
+            "path": [
+              "users",
+              "api",
+              "cache"
+            ],
+            "line": "read",
+            "label": "GET /feed"
+          },
+          {
+            "at": "c-hit",
+            "do": "badge",
+            "target": "cache",
+            "text": "HIT",
+            "line": "green"
+          },
+          {
+            "at": "c-never",
+            "do": "dim",
+            "targets": [
+              "db",
+              "api-db"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "miss",
+      "choreo": "flow",
+      "beats": [
+        {
+          "say": "When the cache {doesn't have it|c-miss}, that's a miss."
+        },
+        {
+          "say": "The app reads the {database|c-db}, [pause 0.2] then {writes the answer back|c-fill} into the cache, with an expiry time called a {TTL|c-ttl}."
+        }
+      ],
+      "scene": {
+        "type": "diagram",
+        "diagram": "cache",
+        "actions": [
+          {
+            "at": "start",
+            "do": "flow",
+            "path": [
+              "users",
+              "api",
+              "cache"
+            ],
+            "line": "read"
+          },
+          {
+            "at": "c-miss",
+            "do": "badge",
+            "target": "cache",
+            "text": "MISS",
+            "line": "orange"
+          },
+          {
+            "at": "c-db",
+            "do": "flow",
+            "path": [
+              "api",
+              "db"
+            ],
+            "line": "miss"
+          },
+          {
+            "at": "c-fill",
+            "do": "flow",
+            "path": [
+              "api",
+              "cache"
+            ],
+            "line": "fill"
+          },
+          {
+            "at": "c-ttl",
+            "do": "badge",
+            "target": "cache",
+            "text": "TTL 60s",
+            "line": "teal"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hit-rate",
+      "choreo": "big-number",
+      "beats": [
+        {
+          "say": "If ninety-five percent of reads are hits, [pause 0.2] the database only sees {one request in twenty|c-one}. [pause 0.4] That's the whole trick."
+        }
+      ],
+      "scene": {
+        "type": "stat",
+        "value": 95,
+        "suffix": "%",
+        "label": "hit rate",
+        "bars": [
+          {
+            "label": "Reads per second",
+            "value": 50000,
+            "line": "blue",
+            "at": "start+0.6"
+          },
+          {
+            "label": "Reach the database",
+            "value": 2500,
+            "line": "green",
+            "at": "c-one"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ch-stampede",
+      "choreo": "chapter",
+      "chapter": "Why does it collapse?",
+      "beats": [
+        {
+          "pace": "normal",
+          "style": "serious",
+          "say": "So why does it collapse? [pause 0.3] This is the part nobody plans for."
+        }
+      ],
+      "scene": {
+        "type": "chapter",
+        "number": 2,
+        "title": "Why does it collapse?",
+        "subtitle": "When one key expires for everyone",
+        "line": "red",
+        "short": "The stampede"
+      }
+    },
+    {
+      "id": "stampede",
+      "choreo": "failure",
+      "beats": [
+        {
+          "say": "Picture one {hot key|c-hot}: the home feed, read thousands of times a second."
+        },
+        {
+          "pace": "slow",
+          "say": "At nine p.m., its TTL {runs out|c-expire}. [pause 0.4]"
+        },
+        {
+          "pace": "brisk",
+          "say": "Every request in the next few milliseconds {misses|c-miss}, and every one of them goes {straight to the database|c-flood}."
+        },
+        {
+          "pace": "slow",
+          "say": "Same row. Same query. A thousand times over. [pause 0.3] The database {falls over|c-dead}."
+        }
+      ],
+      "scene": {
+        "type": "diagram",
+        "diagram": "cache",
+        "actions": [
+          {
+            "at": "start",
+            "do": "clear-lines"
+          },
+          {
+            "at": "c-hot",
+            "do": "badge",
+            "target": "cache",
+            "text": "feed:home",
+            "line": "yellow"
+          },
+          {
+            "at": "c-hot+0.4",
+            "do": "flow",
+            "path": [
+              "users",
+              "api",
+              "cache"
+            ],
+            "line": "read",
+            "stream": true
+          },
+          {
+            "at": "c-expire",
+            "do": "badge",
+            "target": "cache",
+            "text": "EXPIRED",
+            "line": "red"
+          },
+          {
+            "at": "c-miss",
+            "do": "pulse",
+            "targets": [
+              "cache"
+            ],
+            "line": "red"
+          },
+          {
+            "at": "c-flood",
+            "do": "flow",
+            "path": [
+              "api",
+              "db"
+            ],
+            "line": "herd",
+            "stream": true,
+            "speed": 1.6
+          },
+          {
+            "at": "c-flood+1.2",
+            "do": "badge",
+            "target": "db",
+            "text": "×1000",
+            "line": "red"
+          },
+          {
+            "at": "c-dead",
+            "do": "fail",
+            "targets": [
+              "db"
+            ]
+          },
+          {
+            "at": "c-dead+0.3",
+            "do": "badge",
+            "target": "db",
+            "text": "TIMEOUT",
+            "line": "red"
+          }
+        ]
+      }
+    },
+    {
+      "id": "slow-motion",
+      "choreo": "deep-dive",
+      "beats": [
+        {
+          "say": "Slow it down. {Request A|c-a} misses, and asks the database."
+        },
+        {
+          "say": "While A waits, {everyone else|c-b} misses too."
+        },
+        {
+          "say": "And they all {ask the database|c-db} for the very same row. [pause 0.3] Nobody knows someone is already fetching it."
+        }
+      ],
+      "scene": {
+        "type": "sequence",
+        "title": "Thousands of misses, one row",
+        "actors": [
+          {
+            "id": "a",
+            "label": "Request A",
+            "kind": "client"
+          },
+          {
+            "id": "rest",
+            "label": "Everyone else",
+            "kind": "users"
+          },
+          {
+            "id": "cache",
+            "label": "Cache",
+            "kind": "cache"
+          },
+          {
+            "id": "db",
+            "label": "Database",
+            "kind": "db"
+          }
+        ],
+        "messages": [
+          {
+            "from": "a",
+            "to": "cache",
+            "label": "GET feed:home",
+            "code": true,
+            "at": "c-a"
+          },
+          {
+            "from": "cache",
+            "to": "a",
+            "label": "miss",
+            "style": "dashed",
+            "line": "orange",
+            "at": "c-a+0.6"
+          },
+          {
+            "from": "a",
+            "to": "db",
+            "label": "SELECT feed",
+            "code": true,
+            "line": "orange",
+            "at": "c-a+1.2"
+          },
+          {
+            "from": "rest",
+            "to": "cache",
+            "label": "GET feed:home",
+            "code": true,
+            "at": "c-b"
+          },
+          {
+            "from": "cache",
+            "to": "rest",
+            "label": "miss",
+            "style": "dashed",
+            "line": "orange",
+            "at": "c-b+0.6"
+          },
+          {
+            "from": "rest",
+            "to": "db",
+            "label": "SELECT feed",
+            "code": true,
+            "line": "red",
+            "at": "c-db",
+            "badge": {
+              "text": "×999",
+              "line": "red"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "insight",
+      "choreo": "insight",
+      "beats": [
+        {
+          "say": "Nothing in the cache was broken. [pause 0.5] It simply expired, {for everyone, at the same moment|c-all}.",
+          "pace": "slow"
+        }
+      ],
+      "scene": {
+        "type": "statement",
+        "lines": [
+          "The cache didn't break.",
+          "It expired for {everyone|red}."
+        ],
+        "reveal": [
+          "start",
+          "c-all"
+        ]
+      }
+    },
+    {
+      "id": "ch-fixes",
+      "choreo": "chapter",
+      "chapter": "How do we stop it?",
+      "beats": [
+        {
+          "pace": "brisk",
+          "style": "excited",
+          "say": "So how do we stop it? [pause 0.2] Three fixes, and they work best together."
+        }
+      ],
+      "scene": {
+        "type": "chapter",
+        "number": 3,
+        "title": "How do we stop it?",
+        "subtitle": "Coalesce, serve stale, add jitter",
+        "line": "green",
+        "short": "Three fixes"
+      }
+    },
+    {
+      "id": "coalesce",
+      "choreo": "solution",
+      "beats": [
+        {
+          "say": "Fix one: {coalesce|c-co} the misses.",
+          "pace": "brisk"
+        },
+        {
+          "say": "The first request that misses does the {database read|c-load}. Everyone else {waits for that one result|c-wait}. [pause 0.3]"
+        },
+        {
+          "say": "In Go, that's the {singleflight|c-sf} package. Facebook's memcache paper describes the same idea, using {leases|c-lease}.",
+          "style": "neutral"
+        }
+      ],
+      "scene": {
+        "type": "code",
+        "title": "feed.go",
+        "lines": [
+          "var feeds singleflight.Group",
+          "",
+          "func Feed(key string) (any, error) {",
+          "  v, err, _ := feeds.Do(key, func() (any, error) {",
+          "    return db.LoadFeed(key) // once per key",
+          "  })",
+          "  return v, err",
+          "}"
+        ],
+        "actions": [
+          {
+            "at": "c-load",
+            "do": "highlight",
+            "lines": [
+              5,
+              5
+            ],
+            "line": "green"
+          },
+          {
+            "at": "c-wait",
+            "do": "highlight",
+            "lines": [
+              4,
+              4
+            ],
+            "line": "blue"
+          },
+          {
+            "at": "c-sf",
+            "do": "highlight",
+            "lines": [
+              1,
+              1
+            ],
+            "line": "violet"
+          }
+        ],
+        "heading": "Fix 1: {coalesce|green} the misses"
+      }
+    },
+    {
+      "id": "coalesced",
+      "choreo": "solution",
+      "beats": [
+        {
+          "say": "Now the stampede becomes {one query|c-one}. [pause 0.3] The database {recovers|c-rec}, and the cache is {refilled|c-fill}, once."
+        }
+      ],
+      "scene": {
+        "type": "diagram",
+        "diagram": "cache",
+        "actions": [
+          {
+            "at": "start",
+            "do": "clear-lines"
+          },
+          {
+            "at": "start+0.2",
+            "do": "flow",
+            "path": [
+              "users",
+              "api"
+            ],
+            "line": "read",
+            "stream": true
+          },
+          {
+            "at": "c-one",
+            "do": "badge",
+            "target": "api",
+            "text": "1 IN FLIGHT",
+            "line": "green"
+          },
+          {
+            "at": "c-one",
+            "do": "flow",
+            "path": [
+              "api",
+              "db"
+            ],
+            "line": "fix"
+          },
+          {
+            "at": "c-rec",
+            "do": "recover",
+            "targets": [
+              "db"
+            ]
+          },
+          {
+            "at": "c-fill",
+            "do": "flow",
+            "path": [
+              "api",
+              "cache"
+            ],
+            "line": "fill"
+          },
+          {
+            "at": "c-fill+0.8",
+            "do": "badge",
+            "target": "cache",
+            "text": "HIT",
+            "line": "green"
+          }
+        ],
+        "heading": "One miss, {one query|green}"
+      }
+    },
+    {
+      "id": "stale-jitter",
+      "choreo": "solution",
+      "beats": [
+        {
+          "say": "Fix two: {serve stale|c-stale}. When a hot key expires, keep answering with the old value for a few seconds, while {one request|c-one} refreshes it."
+        },
+        {
+          "say": "Users get data that's a little old, [pause 0.2] {instead of an error|c-err}."
+        },
+        {
+          "say": "Fix three: {add jitter|c-jit}. Instead of every key living exactly sixty seconds, give each one sixty, {plus or minus a little|c-pm}."
+        },
+        {
+          "say": "Keys stop expiring in lockstep. [pause 0.2] It won't save a single hot key, but it {stops thousands of keys|c-many} expiring together."
+        }
+      ],
+      "scene": {
+        "type": "compare",
+        "left": {
+          "title": "Fix 2: serve stale",
+          "line": "yellow",
+          "at": "start",
+          "items": [
+            {
+              "text": "Instant answer, old value",
+              "verdict": "pro",
+              "at": "c-stale+1.5"
+            },
+            {
+              "text": "One background refresh",
+              "verdict": "pro",
+              "at": "c-one"
+            },
+            {
+              "text": "Data may be seconds old",
+              "verdict": "con",
+              "at": "c-err"
+            }
+          ]
+        },
+        "right": {
+          "title": "Fix 3: add jitter",
+          "line": "violet",
+          "at": "c-jit",
+          "items": [
+            {
+              "text": "TTL = 60s ± random",
+              "verdict": "neutral",
+              "at": "c-pm"
+            },
+            {
+              "text": "No synchronised expiry",
+              "verdict": "pro",
+              "at": "c-many"
+            },
+            {
+              "text": "Doesn't protect one hot key",
+              "verdict": "con",
+              "at": "c-many+1.4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "recap",
+      "choreo": "recap",
+      "beats": [
+        {
+          "say": "Cache-aside: check the cache, fall back to the database."
+        },
+        {
+          "say": "A hot key can expire for everyone at once."
+        },
+        {
+          "say": "So coalesce the misses, serve stale, and add jitter."
+        }
+      ],
+      "scene": {
+        "type": "list",
+        "title": "The short version",
+        "line": "green",
+        "items": [
+          {
+            "text": "Check the cache, then the database",
+            "detail": "Write back with a TTL"
+          },
+          {
+            "text": "Hot keys expire {all at once|red}"
+          },
+          {
+            "text": "Coalesce, serve stale, add jitter",
+            "detail": "One query per key, never a stampede"
+          }
+        ]
+      }
+    },
+    {
+      "id": "outro",
+      "choreo": "outro",
+      "beats": [
+        {
+          "say": "So: one hot key, one database query, and no stampede. [pause 0.3]"
+        },
+        {
+          "say": "If this helped, follow for more system design, explained in a few minutes."
+        }
+      ],
+      "scene": {
+        "type": "outro",
+        "text": "One key. {One query.} No stampede.",
+        "handle": "@sainp7",
+        "cta": "Follow for more system design",
+        "next": "Rate limiting, with a token bucket"
+      }
+    }
+  ]
+}
