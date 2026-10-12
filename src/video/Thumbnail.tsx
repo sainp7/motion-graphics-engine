@@ -1,22 +1,22 @@
 import React, { useMemo } from "react";
 import { AbsoluteFill } from "remotion";
-import "../design/fonts";
 import { ThemeProvider, typeStyle, useLayout, useTheme } from "../design/theme";
 import { LAYOUT, LineColor } from "../design/tokens";
 import { RichText } from "../primitives/RichText";
 import { compile } from "../spec/compile";
+import { STYLES } from "../styles.generated";
 import { parseText, plainText } from "../spec/markup";
 import type { VideoSpecInput } from "../spec/schema";
 import { VideoCtx } from "./context";
 
-export type ThumbnailProps = { spec: VideoSpecInput; theme?: "dark" | "light" };
+export type ThumbnailProps = { spec: VideoSpecInput; theme?: "dark" | "light"; style?: string };
 
 /** YouTube thumbnail (1280×720): the title as signage, on the same line language as the video. */
-export const Thumbnail: React.FC<ThumbnailProps> = ({ spec, theme }) => {
-  const compiled = useMemo(() => compile(spec, null, { theme }), [spec, theme]);
+export const Thumbnail: React.FC<ThumbnailProps> = ({ spec, theme, style }) => {
+  const compiled = useMemo(() => compile(spec, null, { theme, style }), [spec, theme, style]);
   return (
     <VideoCtx.Provider value={compiled}>
-      <ThemeProvider name={compiled.theme}>
+      <ThemeProvider name={compiled.theme} style={STYLES[compiled.style] ?? STYLES.transit}>
         <ThumbBody lines={compiled.spec.thumbnail?.lines ?? [compiled.spec.title]} accent={compiled.lineColor(compiled.spec.thumbnail?.line)} />
       </ThemeProvider>
     </VideoCtx.Provider>

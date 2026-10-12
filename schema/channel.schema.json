@@ -1,0 +1,170 @@
+{
+  "title": "Channel",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "Lowercase identifier"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "description": "Shown in the intro"
+    },
+    "tagline": {
+      "description": "One line under the name in the intro",
+      "type": "string",
+      "maxLength": 60
+    },
+    "handle": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 30,
+      "description": "e.g. @sainp7; used by the outro"
+    },
+    "platforms": {
+      "default": [
+        "youtube"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "youtube",
+          "shorts",
+          "instagram",
+          "tiktok"
+        ]
+      }
+    },
+    "style": {
+      "default": "transit",
+      "description": "Motion style: a folder in src/styles/",
+      "type": "string"
+    },
+    "theme": {
+      "default": "dark",
+      "type": "string",
+      "enum": [
+        "dark",
+        "light"
+      ]
+    },
+    "voice": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "engine": {
+          "default": "qwen3",
+          "type": "string",
+          "enum": [
+            "qwen3",
+            "kokoro",
+            "elevenlabs",
+            "say",
+            "espeak",
+            "estimate"
+          ]
+        },
+        "voice": {
+          "default": "Aiden",
+          "description": "Qwen3 speaker (\"Aiden\"), \"clone:<name>\" for a cloned voice, or a Kokoro voice",
+          "type": "string"
+        },
+        "speed": {
+          "default": 1,
+          "type": "number",
+          "minimum": 0.6,
+          "maximum": 1.6
+        }
+      },
+      "additionalProperties": false
+    },
+    "music": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "track": {
+          "default": "transit-drive",
+          "description": "Key in library/music/manifest.json, or null",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volume": {
+          "default": 0.22,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "intro": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        },
+        "after": {
+          "description": "Segment id the intro follows; default: the first segment (the hook)",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "seconds": {
+          "default": 3.5,
+          "type": "number",
+          "minimum": 1.5,
+          "maximum": 8
+        },
+        "line": {
+          "default": "orange",
+          "description": "Accent colour of the intro",
+          "type": "string",
+          "minLength": 1
+        },
+        "formats": {
+          "default": [
+            "landscape"
+          ],
+          "description": "Shorts and Reels skip the intro",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "landscape",
+              "portrait"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "outro": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "cta": {
+          "type": "string",
+          "maxLength": 48
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "handle"
+  ],
+  "additionalProperties": false
+}

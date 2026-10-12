@@ -1,10 +1,14 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { useVideoConfig } from "remotion";
-import { FONT, LAYOUT, LineColor, PALETTES, ThemeName, TYPE, TypeRole, onColor } from "./tokens";
+import type { StyleDef } from "../styles/types";
+import { activeTokens, setActiveTokens } from "./style-tokens";
+import { LAYOUT, LineColor, Palette, ThemeName, TypeRole, onColor } from "./tokens";
 
 type ThemeValue = {
   name: ThemeName;
-  p: (typeof PALETTES)[ThemeName];
+  /** The active style: its tokens, scene overrides, background, transitions and intro. */
+  style: StyleDef | null;
+  p: Palette;
   /** Resolve a line colour (or a named line from spec.lines) to hex. */
   line: (c: LineColor) => string;
   /** Text colour that reads on a plate filled with the given line colour. */
@@ -13,11 +17,13 @@ type ThemeValue = {
 
 const ThemeCtx = createContext<ThemeValue | null>(null);
 
-export const ThemeProvider: React.FC<{ name: ThemeName; children: React.ReactNode }> = ({ name, children }) => {
+export const ThemeProvider: React.FC<{ name: ThemeName; style?: StyleDef | null; children: React.ReactNode }> = ({ name, style = null, children }) => {
+  // set before any child renders: typeStyle() and ease() read the active style's tokens
+  if (style) setActiveTokens(style.tokens);
   const value = useMemo<ThemeValue>(() => {
-    const p = PALETTES[name];
-    return { name, p, line: (c) => p.lines[c], on: (c) => onColor(p.lines[c], p) };
-  }, [name]);
+    const p = (style?.tokens ?? activeTokens()).palettes[name];
+    return { name, style, p, line: (c) => p.lines[c], on: (c) => onColor(p.lines[c], p) };
+  }, [name, style]);
   return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
 };
 
@@ -45,16 +51,22 @@ export const useLayout = () => {
   };
 };
 
-/** CSS for a type role, scaled to the frame. */
+/** CSS for a type role, scaled to the frame, in the active style. */
 export const typeStyle = (role: TypeRole, scale: number, mono = false): React.CSSProperties => {
-  const t = TYPE[role];
+  const tok = activeTokens();
+  const t = tok.type[role];
+  const family = mono || role === "code" ? tok.fonts.mono : tok.fonts.display && tok.displayRoles.includes(role) ? tok.fonts.display : tok.fonts.sans;
   return {
-    fontFamily: mono || role === "code" ? FONT.mono : FONT.sans,
+    fontFamily: family,
     fontSize: t.size * scale,
     fontWeight: t.weight,
     lineHeight: t.lineHeight,
     letterSpacing: `${t.tracking}em`,
     fontVariantNumeric: "tabular-nums",
     fontFeatureSettings: '"ss01" 0',
+    ...t.css,
   };
 };
+
+/** The active style (null outside a styled composition). */
+export const useStyle = () => useTheme().style;

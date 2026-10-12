@@ -27,6 +27,8 @@ line only re-synthesises that line.
 Engines
     qwen3       Qwen3-TTS 1.7B CustomVoice, local (Apple GPU via MPS, CUDA, or CPU), free, follows a
                 natural-language delivery instruction per beat (STYLE_PROMPTS). Default speaker "Aiden".
+                `--voice clone:<name>` clones your voice from library/voice/<name>/ (Base model,
+                one reference recording per style; see `npm run voice-ref`).
                 No timestamps of its own: words are timed by Whisper (faster-whisper) on the result.
                 Needs `brew install sox`, ~8 GB free RAM; first run downloads ~4–5 GB of weights.
                 Env: QWEN_TTS_MODEL, QWEN_TTS_DEVICE (mps|cuda:0|cpu), QWEN_TTS_SPEAKER, QWEN_TTS_SEED,
@@ -258,11 +260,68 @@ class ElevenLabsEngine(Engine):
         return Synth(pcm, self.sr, (align(words, tokens) or align_fuzzy(words, tokens)) if tokens else None)
 
 
+ROOT = Path(__file__).resolve().parent.parent
+VOICE_LIB = ROOT / "library" / "voice"
+
+# when a cloned voice has no reference for a style, the closest one stands in
+CLONE_STYLE_FALLBACK = {
+    "neutral": ["calm"],
+    "warm": ["calm"],
+    "serious": ["calm"],
+    "calm": [],
+    "urgent": ["excited"],
+    "excited": ["urgent"],
+}
+
+
+def clone_name(voice: str) -> str | None:
+    return voice[len("clone:"):] if voice.startswith("clone:") else None
+
+
+def load_clone(name: str) -> dict:
+    """library/voice/<name>/voice.json, with reference paths resolved and transcripts read."""
+    folder = VOICE_LIB / name
+    cfg_path = folder / "voice.json"
+    if not cfg_path.exists():
+        sys.exit(f"No cloned voice '{name}': create it with `npm run voice-ref -- {name}`.")
+    cfg = json.loads(cfg_path.read_text())
+    refs = {}
+    for style, r in cfg.get("refs", {}).items():
+        audio, text = folder / r["audio"], folder / r["text"]
+        if audio.exists() and text.exists() and text.read_text().strip():
+            refs[style] = {"audio": audio, "text": text.read_text().strip()}
+    if not refs:
+        sys.exit(f"Cloned voice '{name}' has no usable recordings yet. See {folder.relative_to(ROOT)}/README.md, then `npm run voice-ref -- {name}`.")
+    cfg["_refs"] = refs
+    return cfg
+
+
+def voice_identity(voice: str) -> str:
+    """What the cache compares: the voice name, plus a fingerprint of a cloned voice's recordings,
+    so re-recording a reference re-voices the beats that used it."""
+    name = clone_name(voice)
+    if not name or not (VOICE_LIB / name / "voice.json").exists():
+        return voice
+    h = 0x811C9DC5
+    folder = VOICE_LIB / name
+    for f in sorted(folder.iterdir()):
+        if f.suffix.lower() in (".json", ".txt", ".wav", ".flac"):
+            for byte in f.name.encode() + f.read_bytes()[:: max(1, f.stat().st_size // 65536)]:
+                h = ((h ^ byte) * 0x01000193) & 0xFFFFFFFF
+    return f"{voice}#{h:08x}"
+
+
 class Qwen3Engine(Engine):
-    """Qwen3-TTS CustomVoice. The 1.7B model follows `instruct`; the 0.6B one silently ignores it."""
+    """Qwen3-TTS, two modes:
+    - preset speaker (CustomVoice model, default "Aiden"): delivery from a natural-language
+      instruction per beat (STYLE_PROMPTS). The 1.7B model follows it; 0.6B ignores it.
+    - cloned voice (`voice: "clone:<name>"`, Base model): your timbre and delivery from your own
+      reference recordings, one per style (library/voice/<name>/). The clone API takes no instruction,
+      so each beat uses the recording made in its style."""
 
     name = "qwen3"
     DEFAULT_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+    DEFAULT_CLONE_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
 
     def __init__(self) -> None:
         try:
@@ -275,16 +334,23 @@ class Qwen3Engine(Engine):
                 "and `brew install sox`."
             )
         self.torch = torch
-        device = os.environ.get("QWEN_TTS_DEVICE") or (
+        self.Model = Qwen3TTSModel
+        self.device = os.environ.get("QWEN_TTS_DEVICE") or (
             "cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
         )
-        dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
-        model = os.environ.get("QWEN_TTS_MODEL", self.DEFAULT_MODEL)
-        print(f"qwen3: loading {model} on {device} ({str(dtype).replace('torch.', '')})")
-        self.model = Qwen3TTSModel.from_pretrained(model, device_map=device, dtype=dtype)
+        self.dtype = torch.bfloat16 if self.device.startswith("cuda") else torch.float32
+        self.models: dict = {}
+        self.clones: dict = {}
+        self.prompts: dict = {}
         self.language = os.environ.get("QWEN_TTS_LANGUAGE", "English")
         self.seed = int(os.environ.get("QWEN_TTS_SEED", "7"))
         self.temperature = float(os.environ.get("QWEN_TTS_TEMPERATURE", "0.7"))
+
+    def model(self, name: str):
+        if name not in self.models:
+            print(f"qwen3: loading {name} on {self.device} ({str(self.dtype).replace('torch.', '')})")
+            self.models[name] = self.Model.from_pretrained(name, device_map=self.device, dtype=self.dtype)
+        return self.models[name]
 
     def speaker(self, voice: str) -> str:
         if voice and not voice.startswith(("am_", "af_", "bm_", "bf_")):
@@ -303,15 +369,42 @@ class Qwen3Engine(Engine):
             text += " Speak slower than usual, with a beat between phrases."
         return text
 
+    def clone_prompt(self, name: str, style: str):
+        """The reference recording for this style (or its stand-in), embedded once and reused."""
+        if name not in self.clones:
+            self.clones[name] = load_clone(name)
+        cfg = self.clones[name]
+        refs = cfg["_refs"]
+        chosen = next(
+            (s for s in [style, *CLONE_STYLE_FALLBACK.get(style, []), cfg.get("fallback", "calm"), *refs] if s in refs),
+        )
+        key = (name, chosen)
+        if key not in self.prompts:
+            model = self.model(cfg.get("model", os.environ.get("QWEN_TTS_CLONE_MODEL", self.DEFAULT_CLONE_MODEL)))
+            print(f"  clone:{name} — embedding the '{chosen}' reference")
+            self.prompts[key] = model.create_voice_clone_prompt(ref_audio=str(refs[chosen]["audio"]), ref_text=refs[chosen]["text"])
+        return self.prompts[key], cfg
+
     def synth(self, text: str, words: list[str], voice: str, speed: float, style: str = "neutral") -> Synth:
         self.torch.manual_seed(self.seed)  # same text + style -> same take
-        wavs, sr = self.model.generate_custom_voice(
-            text=text,
-            speaker=self.speaker(voice),
-            language=self.language,
-            instruct=self.instruction(style, speed),
-            temperature=self.temperature,
-        )
+        name = clone_name(voice)
+        if name:
+            prompt, cfg = self.clone_prompt(name, style)
+            model = self.model(cfg.get("model", os.environ.get("QWEN_TTS_CLONE_MODEL", self.DEFAULT_CLONE_MODEL)))
+            wavs, sr = model.generate_voice_clone(
+                text=text,
+                language=cfg.get("language", self.language),
+                voice_clone_prompt=prompt,
+                temperature=self.temperature,
+            )
+        else:
+            wavs, sr = self.model(os.environ.get("QWEN_TTS_MODEL", self.DEFAULT_MODEL)).generate_custom_voice(
+                text=text,
+                speaker=self.speaker(voice),
+                language=self.language,
+                instruct=self.instruction(style, speed),
+                temperature=self.temperature,
+            )
         audio = np.asarray(wavs[0], dtype=np.float32).reshape(-1)
         return Synth(audio, int(sr), whisper_words(audio, int(sr), words, text))
 
@@ -493,6 +586,11 @@ def main() -> None:
     if engine_name == "estimate":
         sys.exit("voice.engine is 'estimate' — nothing to synthesise. Set voice.engine in the spec or pass --engine.")
     voice = args.voice or man["voice"]
+    if clone_name(voice) and engine_name not in ("qwen3", "kokoro", "say", "espeak"):
+        sys.exit(f"{voice} is a cloned voice: use --engine qwen3 (or kokoro/say for a draft in a stock voice).")
+    if clone_name(voice) and engine_name == "qwen3":
+        load_clone(clone_name(voice))  # fail early, before loading any model
+    voice_id = voice_identity(voice) if engine_name == "qwen3" else voice
     engine: Engine | None = None
     public_root = out_dir.parent.parent  # public/
 
@@ -501,7 +599,7 @@ def main() -> None:
     for b in man["beats"]:
         key, h = b["key"], b["hash"]
         prev = old.get("beats", {}).get(key)
-        same = prev and prev.get("hash") == h and prev.get("engine") == engine_name and prev.get("voice") == voice
+        same = prev and prev.get("hash") == h and prev.get("engine") == engine_name and prev.get("voice") == voice_id
         if same and prev.get("file") and (public_root / prev["file"]).exists():
             beats_out[key] = prev
             reused += 1
@@ -509,10 +607,11 @@ def main() -> None:
         if engine is None:
             engine = ENGINES[engine_name]()
         beats_out[key] = synth_beat(engine, b, voice, h, narr_dir, public_root)
+        beats_out[key]["voice"] = voice_id
         made += 1
         print(f"  voiced {key:28s} {beats_out[key]['duration']:6.2f}s")
 
-    timing = {"version": 1, "video": man["video"], "engine": engine_name, "voice": voice, "beats": beats_out}
+    timing = {"version": 1, "video": man["video"], "engine": engine_name, "voice": voice_id, "beats": beats_out}
     timing_path.write_text(json.dumps(timing, indent=2) + "\n")
     print(f"timing: {timing_path} ({made} synthesised, {reused} reused)")
 

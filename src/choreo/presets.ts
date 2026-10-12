@@ -35,7 +35,9 @@ export type SceneType =
   | "list"
   | "chapter"
   | "code"
-  | "outro";
+  | "outro"
+  | "custom"
+  | "intro";
 
 export type Choreo = {
   id: ChoreoId;
@@ -112,6 +114,7 @@ export type Choreo = {
 
 export const CHOREO_IDS = [
   "cold-open",
+  "intro",
   "big-number",
   "myth",
   "failure",
@@ -260,6 +263,18 @@ export const CHOREO: Record<ChoreoId, Choreo> = {
     voice: { pace: "brisk", style: "warm" },
     timing: { leadIn: 0.35, beatGap: 0.3, tail: 0.8 },
     sound: { energy: 2, duck: 0.55, sfx: { reveal: "tick", emphasis: "pop" } },
+  },
+  intro: {
+    id: "intro",
+    purpose:
+      "The channel intro bumper after the hook: the style's Intro draws the channel name and tagline while the music drops in at full energy. Inserted automatically from the channel config; no narration.",
+    scenes: ["intro"],
+    motion: { ...base.motion, enter: "snap", exit: "cut" },
+    stage: { grid: 0, vignette: 0.25, pushIn: 0 },
+    text: { maxWords: 12, size: "xl", align: "center" },
+    voice: { pace: "normal", style: "neutral" },
+    timing: { leadIn: 0, beatGap: 0, tail: 0 },
+    sound: { energy: 3, duck: 1, sting: "hit", sfx: { reveal: "whoosh" } },
   },
   outro: {
     id: "outro",

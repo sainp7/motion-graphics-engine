@@ -27,7 +27,7 @@ export const LINE_MEANING: Record<LineColor, string> = {
   teal: "Secondary path (writes, replication, a second region)",
 };
 
-type Palette = {
+export type Palette = {
   bg: string;
   bgDeep: string;
   surface: string;

@@ -1,14 +1,18 @@
 /**
- * npm run new -- <video-id> ["Working title"]
+ * npm run new -- <video-id> ["Working title"] [--channel essays]
  *
- * Scaffolds videos/<id>/ with brief.md, script.md and a starter spec.json.
+ * Scaffolds videos/<id>/ with brief.md, script.md and a starter spec.json. The video inherits its
+ * style, theme, voice, music, handle and intro from the channel (studio.json's default if omitted).
  * Ids look like 002-rate-limiting: a running number and a short slug.
  */
 import fs from "node:fs";
 import { cli, fail, paths, rel, requireId } from "./lib/common";
 import { sync } from "./sync";
+import { channelIds } from "../src/spec/channel";
 
-const { positionals } = cli({});
+const { values, positionals } = cli({ channel: { type: "string" } });
+if (values.channel && !channelIds().includes(values.channel))
+  fail(`unknown channel "${values.channel}" (channels: ${channelIds().join(", ")}). Create one: npm run new-channel -- ${values.channel} "Name"`);
 const id = requireId(positionals);
 if (!/^[a-z0-9][a-z0-9_-]*$/.test(id)) fail("ids are lowercase letters, digits, - and _ (e.g. 002-rate-limiting)");
 const title = positionals[1] ?? id.replace(/^\d+-/, "").replace(/-/g, " ");
@@ -48,9 +52,7 @@ const spec = {
   version: 1,
   id,
   title,
-  theme: "dark",
-  voice: { engine: "qwen3", voice: "Aiden", speed: 1 },
-  music: { track: "transit-drive", volume: 0.22 },
+  ...(values.channel ? { channel: values.channel } : {}),
   lines: {},
   diagrams: {},
   thumbnail: { lines: [title] },
@@ -65,7 +67,7 @@ const spec = {
       id: "outro",
       choreo: "outro",
       beats: [{ say: "Close the loop on the opening question." }, { say: "Follow for more system design." }],
-      scene: { type: "outro", text: "The closing line.", handle: "@sainp7" },
+      scene: { type: "outro", text: "The closing line." },
     },
   ],
 };

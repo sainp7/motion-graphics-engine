@@ -1,15 +1,18 @@
 import { Easing, interpolate } from "remotion";
-import { EASE, EaseName } from "./tokens";
+import { activeTokens } from "./style-tokens";
+import type { EaseName } from "./tokens";
 
-const cache = new Map<EaseName, (t: number) => number>();
+const cache = new Map<string, (t: number) => number>();
 
-/** Easing function for a named curve from the token set. */
+/** Easing function for a named curve from the active style's token set. */
 export const ease = (name: EaseName) => {
-  let fn = cache.get(name);
+  const tok = activeTokens();
+  const key = `${tok.id}:${name}`;
+  let fn = cache.get(key);
   if (!fn) {
-    const [a, b, c, d] = EASE[name];
+    const [a, b, c, d] = tok.ease[name];
     fn = Easing.bezier(a, b, c, d);
-    cache.set(name, fn);
+    cache.set(key, fn);
   }
   return fn;
 };

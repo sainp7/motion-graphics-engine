@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
-import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Sequence, useCurrentFrame } from "remotion";
 import { AudioLayer } from "../audio/AudioLayer";
-import "../design/fonts";
-import { lerp, prog } from "../design/motion";
-import { ThemeProvider, useTheme } from "../design/theme";
+import { prog } from "../design/motion";
+import { ThemeProvider, typeStyle, useLayout, useStyle, useTheme } from "../design/theme";
 import { Stage } from "../primitives/Stage";
+import { STYLES } from "../styles.generated";
 import { Chapter } from "../scenes/Chapter";
 import { Code } from "../scenes/Code";
 import { Compare } from "../scenes/Compare";
@@ -14,16 +14,19 @@ import { Outro } from "../scenes/Outro";
 import { Sequence as SequenceScene } from "../scenes/Sequence";
 import { Stat } from "../scenes/Stat";
 import { Statement } from "../scenes/Statement";
-import { Compiled, CompiledSegment, compile } from "../spec/compile";
+import { CompiledSegment, Resolved, compile } from "../spec/compile";
+import { CUSTOM_SCENES } from "../registry.generated";
 import type { TimingFile } from "../spec/timing";
-import type { VideoSpecInput } from "../spec/schema";
-import { SegmentCtx, VideoCtx, useSegment } from "./context";
+import type { CustomSceneT, IntroSceneT, VideoSpecInput } from "../spec/schema";
+import { SegmentCtx, VideoCtx, useSegment, useVideo } from "./context";
 import { QaProbe } from "./QaProbe";
 
 export type SpecVideoProps = {
   spec: VideoSpecInput;
   timing?: TimingFile | null;
   theme?: "dark" | "light";
+  /** Preview or render in another motion style than the channel's. */
+  style?: string;
   muteMusic?: boolean;
   muteSfx?: boolean;
   /** Turn on the automated text QA probe (used by npm run sheet). */
@@ -31,11 +34,13 @@ export type SpecVideoProps = {
 };
 
 /** Renders any video spec. New videos never need new code here. */
-export const SpecVideo: React.FC<SpecVideoProps> = ({ spec, timing, theme, muteMusic, muteSfx, qa }) => {
-  const compiled = useMemo(() => compile(spec, timing, { theme }), [spec, timing, theme]);
+export const SpecVideo: React.FC<SpecVideoProps> = ({ spec, timing, theme, style, muteMusic, muteSfx, qa }) => {
+  const compiled = useMemo(() => compile(spec, timing, { theme, style }), [spec, timing, theme, style]);
+  const def = STYLES[compiled.style] ?? STYLES.transit;
+  const Overlay = def.Overlay;
   return (
     <VideoCtx.Provider value={compiled}>
-      <ThemeProvider name={compiled.theme}>
+      <ThemeProvider name={compiled.theme} style={def}>
         <Background />
         {compiled.segments.map((seg) => (
           <Sequence
@@ -49,7 +54,7 @@ export const SpecVideo: React.FC<SpecVideoProps> = ({ spec, timing, theme, muteM
             </SegmentCtx.Provider>
           </Sequence>
         ))}
-        <LineWipes compiled={compiled} />
+        {Overlay && <Overlay compiled={compiled} />}
         <AudioLayer muteMusic={muteMusic} muteSfx={muteSfx} />
         {qa && <QaProbe />}
       </ThemeProvider>
@@ -72,7 +77,7 @@ const SegmentBody: React.FC<{ last: boolean }> = ({ last }) => {
   const isDiagram = seg.scene.type === "diagram";
   return (
     <AbsoluteFill style={{ opacity: fadeIn * fadeOut }}>
-      <Stage grid={isDiagram ? 0 : seg.choreo.stage.grid * 0.6} vignette={seg.choreo.stage.vignette} />
+      <StyledStage grid={isDiagram ? 0 : seg.choreo.stage.grid * 0.6} vignette={seg.choreo.stage.vignette} />
       <AbsoluteFill style={{ scale: `${push}` }}>
         <SceneSwitch seg={seg} />
       </AbsoluteFill>
@@ -80,8 +85,16 @@ const SegmentBody: React.FC<{ last: boolean }> = ({ last }) => {
   );
 };
 
+const StyledStage: React.FC<{ grid: number; vignette: number }> = (props) => {
+  const B = useStyle()?.Background ?? Stage;
+  return <B {...props} />;
+};
+
 const SceneSwitch: React.FC<{ seg: CompiledSegment }> = ({ seg }) => {
   const s = seg.scene;
+  const style = useStyle();
+  const Override = s.type !== "custom" && s.type !== "intro" ? style?.scenes?.[s.type] : undefined;
+  if (Override) return <Override scene={s} />;
   switch (s.type) {
     case "statement":
       return <Statement scene={s} />;
@@ -101,40 +114,47 @@ const SceneSwitch: React.FC<{ seg: CompiledSegment }> = ({ seg }) => {
       return <Code scene={s} />;
     case "outro":
       return <Outro scene={s} />;
+    case "custom":
+      return <CustomSlot seg={seg} />;
+    case "intro":
+      return <IntroSlot seg={seg} />;
   }
 };
 
-/** The studio's signature transition: a band in the next line's colour sweeps across, like a train passing. */
-const LineWipes: React.FC<{ compiled: Compiled }> = ({ compiled }) => {
-  const frame = useCurrentFrame();
-  const { width } = useVideoConfig();
-  const { line } = useTheme();
-  const half = 8;
-  const active = compiled.segments.find((s, i) => {
-    if (s.transitionOut !== "line-wipe" || i === compiled.segments.length - 1) return false;
-    const b = s.from + s.durationInFrames;
-    return frame >= b - half && frame < b + half;
-  });
-  if (!active) return null;
-  const next = compiled.segments[active.index + 1];
-  const b = active.from + active.durationInFrames;
-  const color = line(next.accent);
-  const inP = prog(frame, b - half, half, "snap");
-  const outP = prog(frame, b, half, "exit");
-  const left = lerp(0, width, outP);
-  const right = lerp(0, width, inP);
+/** The channel intro, drawn by the style. */
+const IntroSlot: React.FC<{ seg: CompiledSegment }> = ({ seg }) => {
+  const video = useVideo();
+  const style = useStyle();
+  const s = seg.scene as Resolved<IntroSceneT>;
+  const Intro = style?.Intro;
+  if (!Intro) return null;
   return (
-    <AbsoluteFill style={{ pointerEvents: "none" }}>
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          bottom: 0,
-          left,
-          width: Math.max(0, right - left),
-          backgroundColor: color,
-        }}
-      />
-    </AbsoluteFill>
+    <Intro
+      name={s.name ?? video.channel?.name ?? video.spec.title}
+      tagline={s.tagline ?? video.channel?.tagline}
+      handle={video.channel?.handle ?? ""}
+      durationInFrames={seg.durationInFrames}
+      accent={seg.accent}
+    />
   );
 };
+
+/** Mounts a video's own scene component (videos/<id>/scenes/<Name>.tsx) with resolved cues. */
+const CustomSlot: React.FC<{ seg: CompiledSegment }> = ({ seg }) => {
+  const video = useVideo();
+  const { p, line, name } = useTheme();
+  const { scale } = useLayout();
+  const s = seg.scene as Resolved<CustomSceneT>;
+  const Component = CUSTOM_SCENES[video.spec.id]?.[s.component];
+  if (!Component)
+    return (
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", color: line("red"), ...typeStyle("title", scale) }}>
+        <div>
+          Missing custom scene <span style={{ color: p.text }}>videos/{video.spec.id}/scenes/{s.component}.tsx</span>
+        </div>
+      </AbsoluteFill>
+    );
+  // remount on theme or style change: script scenes build their DOM once
+  return <Component key={`${name}-${video.style}`} cues={s.cues} props={s.props} durationInFrames={seg.durationInFrames} accent={seg.accent} />;
+};
+

@@ -3,7 +3,9 @@
 | component | licence | notes |
 |---|---|---|
 | [Remotion](https://www.remotion.dev) | Remotion License | Free for individuals, for-profit organisations with up to 3 employees, and non-profits; larger companies need a company licence. See `node_modules/remotion/LICENSE.md`. |
-| Overpass, Overpass Mono (via Fontsource) | SIL Open Font License 1.1 | |
+| Overpass, Overpass Mono, Fraunces, Inter Tight (via Fontsource) | SIL Open Font License 1.1 | bundled at build time |
+| [GSAP](https://gsap.com) | GreenSock Standard License (no charge) | seekable timelines in script scenes |
+| [Vite](https://vite.dev), [@remotion/player](https://www.remotion.dev/player) | MIT; Remotion License | the review studio |
 | [Lucide](https://lucide.dev) icons | ISC | |
 | [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice) (downloaded at first use, not redistributed) | see the model page | default narrator, via the `qwen-tts` package |
 | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and Whisper `small.en` (downloaded at first use) | MIT | word timing for Qwen3-TTS narration |

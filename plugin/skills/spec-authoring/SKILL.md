@@ -49,6 +49,7 @@ per beat; otherwise they spread across the narration. Prefer explicit cues for a
 | `chapter` | section marker | `number`, `title` (a question), `short` (route-map label), `subtitle`, `line`; set segment `chapter` |
 | `code` | literal code or config | `heading` ("Fix 1: …"), `title` (file name), `lines[]` (≤ 14, ≤ 64 chars), `actions: highlight [from,to]` |
 | `outro` | close the loop + CTA | `text`, `handle` (`@sainp7`), `cta`, `next` |
+| `custom` | a signature moment the library cannot draw (see `custom-scenes`) | `component`, `props`, `cues`, `signage`, `actions: sfx` |
 
 ## The loop
 1. Write or edit the spec. The guardrail hook runs `npm run check` on save and blocks on errors.

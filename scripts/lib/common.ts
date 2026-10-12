@@ -2,34 +2,12 @@ import { spawnSync, SpawnSyncOptions } from "node:child_process";
 import { parseArgs, ParseArgsConfig } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { VideoSpec, VideoSpecT } from "../../src/spec/schema";
+import type { VideoSpecInput, VideoSpecT } from "../../src/spec/schema";
+import { parseSpec } from "../../src/spec/channel";
 import type { TimingFile } from "../../src/spec/timing";
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-export const VIDEOS = path.join(ROOT, "videos");
-export const PUBLIC = path.join(ROOT, "public");
-export const OUT = path.join(ROOT, "out");
-
-export const paths = (id: string) => ({
-  dir: path.join(VIDEOS, id),
-  spec: path.join(VIDEOS, id, "spec.json"),
-  script: path.join(VIDEOS, id, "script.md"),
-  brief: path.join(VIDEOS, id, "brief.md"),
-  publish: path.join(VIDEOS, id, "publish.md"),
-  build: path.join(PUBLIC, "videos", id),
-  timing: path.join(PUBLIC, "videos", id, "timing.json"),
-  narration: path.join(PUBLIC, "videos", id, "narration.json"),
-  out: path.join(OUT, id),
-});
-
-export const listVideos = () =>
-  fs.existsSync(VIDEOS)
-    ? fs
-        .readdirSync(VIDEOS)
-        .filter((d) => fs.existsSync(path.join(VIDEOS, d, "spec.json")))
-        .sort()
-    : [];
+export { ROOT, VIDEOS, PUBLIC, OUT, paths, listVideos } from "./paths";
+import { ROOT, listVideos, paths } from "./paths";
 
 export const readJson = <T>(file: string): T => JSON.parse(fs.readFileSync(file, "utf8")) as T;
 
@@ -39,7 +17,8 @@ export const loadRawSpec = (id: string): unknown => {
   return readJson(p);
 };
 
-export const loadSpec = (id: string): VideoSpecT => VideoSpec.parse(loadRawSpec(id));
+/** The spec as the renderer sees it: channel defaults applied, intro inserted. */
+export const loadSpec = (id: string): VideoSpecT => parseSpec(loadRawSpec(id) as VideoSpecInput);
 
 export const loadTiming = (id: string): TimingFile | null => {
   const p = paths(id).timing;

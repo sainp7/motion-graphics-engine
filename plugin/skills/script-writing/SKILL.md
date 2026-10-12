@@ -6,8 +6,8 @@ description: Narration rules for the channel — voice, structure, pacing, delib
 # Script writing
 
 ## Voice
-- American English, one male narrator (Qwen3-TTS speaker `Aiden` by default; Kokoro `am_michael` for
-  drafts). Confident and plain, but alive: urgent in the hook, excited when the fix lands, slow and
+- American English, one male narrator (Qwen3-TTS speaker `Aiden` by default, or your cloned voice,
+  `clone:<name>`; Kokoro `am_michael` for drafts). Confident and plain, but alive: urgent in the hook, excited when the fix lands, slow and
   serious on the key claim. Never hype, never robotic.
 - Talk to one engineer: "you", "your database". Short sentences. One idea per sentence.
 - Concrete over abstract: "the home feed, read thousands of times a second" beats "a popular resource".

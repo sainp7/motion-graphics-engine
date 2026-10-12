@@ -14,6 +14,13 @@ const VOICE_GAIN = 0.72;
 const SFX_GAIN = 0.62;
 const MUSIC_GAIN = 0.85;
 
+/**
+ * Each clip mounts this long before it plays, so its audio is fetched and decoded in advance.
+ * Without it the Player stalls ("waiting") on every clip's first frame and the preview stutters:
+ * the picture holds while looping music runs on, then jumps to resync. Renders are unaffected.
+ */
+const PREMOUNT_SECONDS = 2;
+
 const SOUNDS = (sfxManifest as { sounds: Record<string, SoundDef> }).sounds;
 const TRACKS = (musicManifest as unknown as { tracks: Record<string, TrackDef> }).tracks;
 
@@ -31,6 +38,7 @@ export const AudioLayer: React.FC<{ muteMusic?: boolean; muteSfx?: boolean }> = 
   const m0 = video.musicStart;
   const at = (curve: Float32Array, f: number) => curve[Math.min(curve.length - 1, Math.max(0, m0 + Math.round(f)))] ?? 0;
   const base = video.spec.music.volume;
+  const premountFor = Math.round(PREMOUNT_SECONDS * video.fps);
 
   return (
     <>
@@ -44,6 +52,7 @@ export const AudioLayer: React.FC<{ muteMusic?: boolean; muteSfx?: boolean }> = 
               src={staticFile(b.timing.file!)}
               from={seg.from + b.from}
               durationInFrames={b.durationInFrames + 2}
+              premountFor={premountFor}
               volume={VOICE_GAIN}
             />
           )),
@@ -59,6 +68,7 @@ export const AudioLayer: React.FC<{ muteMusic?: boolean; muteSfx?: boolean }> = 
               name={`music ${stem}`}
               src={staticFile(file)}
               from={m0}
+              premountFor={premountFor}
               loop
               loopVolumeCurveBehavior="extend"
               volume={(f) => at(curve, f) * g}
@@ -70,6 +80,7 @@ export const AudioLayer: React.FC<{ muteMusic?: boolean; muteSfx?: boolean }> = 
           name="music"
           src={staticFile(track.file)}
           from={m0}
+          premountFor={premountFor}
           loop
           loopVolumeCurveBehavior="extend"
           volume={(f) => at(env[Object.keys(env)[0]], f) * base * MUSIC_GAIN}
@@ -86,6 +97,7 @@ export const AudioLayer: React.FC<{ muteMusic?: boolean; muteSfx?: boolean }> = 
               src={staticFile(s.file)}
               from={e.frame}
               durationInFrames={Math.max(2, Math.ceil(s.seconds * video.fps) + 1)}
+              premountFor={premountFor}
               volume={e.gain * SFX_GAIN}
             />
           );

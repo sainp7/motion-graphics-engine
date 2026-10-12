@@ -339,9 +339,49 @@ export const OutroScene = z
   .object({
     type: z.literal("outro"),
     text: z.string().min(1).max(80).describe("The closing line (on-screen markup allowed)"),
-    handle: z.string().min(2).max(30).describe("e.g. @sainp7"),
+    handle: z.string().min(2).max(30).describe("e.g. @sainp7; defaults to the channel's handle"),
     cta: z.string().max(48).default("Follow for more system design"),
     next: z.string().max(48).optional().describe("Teaser for the next episode"),
+  })
+  .strict();
+
+/**
+ * A hand-coded scene for a signature moment the built-in scenes cannot express (a ring, a morph,
+ * kinetic type, many particles). The component lives in videos/<id>/scenes/<component>.tsx and
+ * builds on the studio kit (src/custom/kit.ts): same tokens, theme, motion curves and audio timing.
+ */
+export const CustomScene = z
+  .object({
+    type: z.literal("custom"),
+    component: z
+      .string()
+      .regex(/^[A-Z][A-Za-z0-9]*$/, "PascalCase file name in videos/<id>/scenes/, without .tsx")
+      .describe("Component file in videos/<id>/scenes/ (default export)"),
+    cues: z
+      .record(z.string().regex(/^[a-z][a-z0-9-]*$/), CueRef)
+      .default({})
+      .describe("Named moments → cue refs; the component receives them as frames"),
+    props: z.record(z.string(), z.unknown()).default({}).describe("Free data for the component"),
+    signage: z
+      .array(z.string().max(60))
+      .max(8)
+      .default([])
+      .describe("The on-screen words the component shows, for the linter (word budget, caption check)"),
+    line: LineRef.optional().describe("Accent colour; defaults from the choreography"),
+    actions: z
+      .array(z.discriminatedUnion("do", [z.object({ at, do: z.literal("sfx"), sound: z.string() }).strict()]))
+      .default([])
+      .describe("Extra sound accents on cues"),
+  })
+  .strict();
+
+/** The channel intro bumper, drawn by the style. Inserted after the hook from the channel config. */
+export const IntroScene = z
+  .object({
+    type: z.literal("intro"),
+    name: z.string().max(40).optional().describe("Overrides the channel name"),
+    tagline: z.string().max(60).optional().describe("Overrides the channel tagline"),
+    line: LineRef.optional(),
   })
   .strict();
 
@@ -355,6 +395,8 @@ export const Scene = z.discriminatedUnion("type", [
   ChapterScene,
   CodeScene,
   OutroScene,
+  CustomScene,
+  IntroScene,
 ]);
 
 export const Segment = z
@@ -362,11 +404,28 @@ export const Segment = z
     id: Id,
     choreo: z.enum(CHOREO_IDS).describe("The segment's intent; drives motion, music, sfx and text limits"),
     chapter: z.string().max(40).optional().describe("Starts a YouTube chapter with this title"),
-    beats: z.array(Beat).min(1).describe("Narration for this segment, in order"),
+    beats: z.array(Beat).describe("Narration for this segment, in order (empty only for the intro)"),
     scene: Scene,
-    hold: z.number().min(0).max(6).default(0).describe("Extra seconds of picture after the choreography's tail"),
+    hold: z.number().min(0).max(8).default(0).describe("Extra seconds of picture after the choreography's tail"),
     transition: z.enum(["cut", "fade", "line-wipe"]).optional().describe("Overrides the choreography's exit"),
     sfx: z.boolean().default(true).describe("Automatic sound effects for this segment"),
+  })
+  .strict();
+
+export const VoiceSettings = z
+  .object({
+    engine: z.enum(["qwen3", "kokoro", "elevenlabs", "say", "espeak", "estimate"]).default("qwen3"),
+    /** Qwen3 speaker ("Aiden"), a cloned voice ("clone:<name>", library/voice/<name>/), or a Kokoro
+     * voice ("am_michael"); each engine maps the others' voices to its own default. */
+    voice: z.string().default("Aiden").describe('Qwen3 speaker ("Aiden"), "clone:<name>" for a cloned voice, or a Kokoro voice'),
+    speed: z.number().min(0.6).max(1.6).default(1),
+  })
+  .strict();
+
+export const MusicSettings = z
+  .object({
+    track: z.string().nullable().default("transit-drive").describe("Key in library/music/manifest.json, or null"),
+    volume: z.number().min(0).max(1).default(0.22),
   })
   .strict();
 
@@ -376,25 +435,17 @@ export const VideoSpec = z
     version: z.literal(1),
     id: Id,
     title: z.string().min(1),
+    channel: z.string().optional().describe("Key of channels/<id>/channel.json; defaults to studio.json defaultChannel"),
+    style: z.string().optional().describe("Motion style (src/styles/<id>); defaults to the channel's style"),
+    intro: z
+      .union([z.boolean(), z.object({ after: Id }).strict()])
+      .default(true)
+      .describe("The channel intro after the hook: false to skip, or { after: <segment id> } to move it"),
     format: z.enum(["landscape", "portrait"]).default("landscape"),
-    theme: z.enum(["dark", "light"]).default("dark"),
+    theme: z.enum(["dark", "light"]).default("dark").describe("Defaults to the channel's theme"),
     fps: z.union([z.literal(30), z.literal(60)]).default(30),
-    voice: z
-      .object({
-        engine: z.enum(["qwen3", "kokoro", "elevenlabs", "say", "espeak", "estimate"]).default("qwen3"),
-        /** Qwen3 speaker ("Aiden") or Kokoro voice ("am_michael"); each engine maps the other's default to its own. */
-        voice: z.string().default("Aiden"),
-        speed: z.number().min(0.6).max(1.6).default(1),
-      })
-      .strict()
-      .prefault({}),
-    music: z
-      .object({
-        track: z.string().nullable().default("transit-drive").describe("Key in library/music/manifest.json, or null"),
-        volume: z.number().min(0).max(1).default(0.22),
-      })
-      .strict()
-      .prefault({}),
+    voice: VoiceSettings.prefault({}).describe("Defaults come from the channel"),
+    music: MusicSettings.prefault({}).describe("Defaults come from the channel"),
     lines: z
       .record(Id, z.object({ color: z.enum(LINE_COLORS), label: z.string().max(24) }).strict())
       .default({})
@@ -426,3 +477,5 @@ export type ListSceneT = z.output<typeof ListScene>;
 export type ChapterSceneT = z.output<typeof ChapterScene>;
 export type CodeSceneT = z.output<typeof CodeScene>;
 export type OutroSceneT = z.output<typeof OutroScene>;
+export type CustomSceneT = z.output<typeof CustomScene>;
+export type IntroSceneT = z.output<typeof IntroScene>;

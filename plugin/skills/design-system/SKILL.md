@@ -5,6 +5,10 @@ description: The studio's visual language — "the system is a transit map" — 
 
 # Design system
 
+This skill describes **transit**, the system-design channel's style. Other channels use other styles
+from the library (`styles-and-channels`); the rules about colour meaning, signage and tokens hold
+in every style.
+
 **Direction (ADR-0001): the system is a transit map.** Components are stations, connections are
 tracks, requests ride coloured lines and leave them painted behind them. Text is signage. The
 source of truth is `src/design/tokens.ts`; components never hard-code colours, sizes or curves

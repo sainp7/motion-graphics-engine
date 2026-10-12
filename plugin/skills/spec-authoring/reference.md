@@ -116,3 +116,21 @@ The handle and CTA appear on the second beat.
 
 ## Sounds (for `sfx` actions)
 tick, tock, pop, blip, whoosh, swish, hit, riser, glitch, chime, snap — see `library/sfx/manifest.json`.
+
+## custom
+```json
+{ "type": "custom", "component": "HashRing", "props": { "mode": "add", "keys": 48 },
+  "cues": { "ring": "c-ring", "add": "c-add", "take": "c-take" },
+  "signage": ["Keys per server", "6 of 48 keys moved"],
+  "actions": [{ "at": "c-add", "do": "sfx", "sound": "pop" }] }
+```
+`component` is `videos/<id>/scenes/<component>.tsx` (default export). `cues` values are cue refs and
+arrive in the component as segment-relative frames. `signage` lists the on-screen words (linted).
+Without `actions`, each cue plays the choreography's reveal sound. See the `custom-scenes` skill.
+
+## voice (cloned)
+```json
+"voice": { "engine": "qwen3", "voice": "clone:paras" }
+```
+Uses `library/voice/paras/` (see `npm run voice-ref -- paras`): one recording per style, chosen per
+beat by `style`. `pace` does not change a cloned voice's speed; pauses and sentence length do.

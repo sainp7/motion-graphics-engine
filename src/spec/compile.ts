@@ -9,7 +9,8 @@ import { CHOREO, Choreo, SfxId, TransitionKind } from "../choreo/presets";
 import { FORMATS, LINE_COLORS, LineColor } from "../design/tokens";
 import { parseSay } from "./markup";
 import { BeatTiming, TimingFile, applyVoiceDefaults, beatHash, beatKey, beatSpeed, estimateBeat } from "./timing";
-import { VideoSpec, VideoSpecInput, VideoSpecT, SceneT, DiagramActionT } from "./schema";
+import { VideoSpecInput, VideoSpecT, SceneT, DiagramActionT } from "./schema";
+import { ChannelT, getChannel, parseSpec } from "./channel";
 
 // ---------------------------------------------------------------- types
 
@@ -26,7 +27,9 @@ export type Resolved<T> = T extends string | number | boolean | null | undefined
               ? number[]
               : K extends "line" | "underline"
                 ? LineColor
-                : Resolved<T[K]>;
+                : K extends "cues"
+                  ? Record<string, number>
+                  : Resolved<T[K]>;
         }
       : T;
 
@@ -66,6 +69,10 @@ export type Compiled = {
   width: number;
   height: number;
   theme: "dark" | "light";
+  /** Motion style id (src/styles/<id>). */
+  style: string;
+  /** The video's channel (channels/<id>/channel.json), or null if it has none. */
+  channel: ChannelT | null;
   durationInFrames: number;
   segments: CompiledSegment[];
   sfx: SfxEvent[];
@@ -112,10 +119,11 @@ const tagLineNames = (v: unknown, lines: Record<string, unknown>) => {
 
 // ---------------------------------------------------------------- compile
 
-export type CompileOptions = { theme?: "dark" | "light" };
+export type CompileOptions = { theme?: "dark" | "light"; /** override the channel's motion style */ style?: string };
 
 export const compile = (input: VideoSpecInput | VideoSpecT, timing?: TimingFile | null, opts: CompileOptions = {}): Compiled => {
-  const spec = applyVoiceDefaults(VideoSpec.parse(input));
+  const spec = applyVoiceDefaults(parseSpec(input));
+  const channel = getChannel(spec.channel);
   const warnings: string[] = [];
   const warn = (m: string) => warnings.push(m);
   const fps = spec.fps;
@@ -142,7 +150,7 @@ export const compile = (input: VideoSpecInput | VideoSpecT, timing?: TimingFile 
 
   spec.segments.forEach((seg, index) => {
     const choreo = CHOREO[seg.choreo];
-    if (!choreo.scenes.includes(seg.scene.type)) {
+    if (seg.scene.type !== "custom" && !choreo.scenes.includes(seg.scene.type)) {
       warn(`${seg.id}: scene "${seg.scene.type}" is unusual for choreo "${seg.choreo}" (expected ${choreo.scenes.join(", ")})`);
     }
     const transitionOut: TransitionKind = seg.transition ?? choreo.motion.exit;
@@ -236,6 +244,8 @@ export const compile = (input: VideoSpecInput | VideoSpecT, timing?: TimingFile 
     const scene = deepMap(sceneCopy, (key, value) => {
       if ((key === "at" || key === "until") && typeof value === "string") return resolve(value);
       if (key === "reveal" && Array.isArray(value)) return value.map((v) => (typeof v === "string" ? resolve(v) : v));
+      if (key === "cues" && sceneCopy.type === "custom" && value && typeof value === "object" && !Array.isArray(value))
+        return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, typeof v === "string" ? resolve(v) : v]));
       if ((key === "line" || key === "underline") && typeof value === "string") return lineColor(value);
       return value;
     }) as ResolvedScene;
@@ -296,6 +306,8 @@ export const compile = (input: VideoSpecInput | VideoSpecT, timing?: TimingFile 
     width,
     height,
     theme: opts.theme ?? spec.theme,
+    style: opts.style ?? spec.style ?? channel?.style ?? "transit",
+    channel,
     durationInFrames: cursor,
     segments,
     sfx: dedupeSfx(sfx),
@@ -464,6 +476,15 @@ function scheduleSfx(
     case "outro":
       add(secs(0.4), reveal(0));
       break;
+    case "intro":
+      add(secs(0.1), reveal(0), 0.8);
+      break;
+    case "custom":
+      // a custom scene owns its moments: each named cue gets the reveal sound unless the scene
+      // says otherwise with explicit sfx actions
+      if (scene.actions.length) for (const a of scene.actions) add(a.at, a.sound);
+      else Object.values(scene.cues).forEach((f, i) => add(f, reveal(i), i === 0 ? 1 : 0.8));
+      break;
     case "diagram": {
       const showsAtFrame = new Map<number, number>();
       for (const e of diagramEvents ?? []) {
@@ -534,11 +555,20 @@ function dedupeSfx(list: SfxEvent[]): SfxEvent[] {
 // ---------------------------------------------------------------- music
 
 /** First visual impact of the video (the hook's first reveal), where music should enter. */
+const earliest = (fs: number[]) => (fs.length ? Math.min(...fs) : 0);
+
 function firstImpact(segments: CompiledSegment[]): number {
   const s = segments[0];
   if (!s) return 0;
   const sc = s.scene;
-  const f = sc.type === "statement" ? (sc.reveal?.[0] ?? 0) : sc.type === "stat" ? sc.at : 0;
+  const f =
+    sc.type === "statement"
+      ? (sc.reveal?.[0] ?? 0)
+      : sc.type === "stat"
+        ? sc.at
+        : sc.type === "custom"
+          ? earliest(Object.values(sc.cues))
+          : 0;
   return s.from + f;
 }
 
@@ -574,8 +604,16 @@ export const musicEnvelope = (c: Compiled, track: { bpm?: number; energy?: Energ
   for (const seg of c.segments) {
     const lv = levels(seg);
     const prev = c.segments[seg.index - 1];
+    // the intro drops in on its first frame and hands back on the next segment's first frame
+    const isIntro = seg.choreo.id === "intro" || prev?.choreo.id === "intro";
     const start =
-      seg.index === 0 ? c.musicStart : silent(lv) ? seg.from : prev && silent(levels(prev)) ? grid(seg.from, beatFrames) : grid(seg.from, barFrames);
+      seg.index === 0
+        ? c.musicStart
+        : silent(lv) || isIntro
+          ? seg.from
+          : prev && silent(levels(prev))
+            ? grid(seg.from, beatFrames)
+            : grid(seg.from, barFrames);
     for (let f = Math.max(0, start); f < n; f++) for (const k of names) stems[k][f] = lv[k] ?? 0;
     for (const [a, b] of c.voiceWindows) {
       if (a < seg.from || a >= seg.from + seg.durationInFrames) continue;

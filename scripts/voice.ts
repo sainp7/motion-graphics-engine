@@ -7,6 +7,7 @@
  *
  * qwen3 (default) runs Qwen3-TTS on this machine (Apple GPU via MPS) and times words with Whisper.
  * kokoro is the fast fallback: `npm run voice -- <id> --engine kokoro`.
+ * A cloned voice (`"voice": "clone:<name>"`, see `npm run voice-ref`) uses the qwen3 engine.
  */
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -23,6 +24,12 @@ const engine = values.engine ?? spec.voice.engine;
 if (engine === "estimate") fail(`voice.engine is "estimate" in ${rel(P.spec)}. Set it to qwen3 or kokoro (or pass --engine say for a quick macOS draft).`);
 if (engine === "elevenlabs" && !process.env.ELEVENLABS_API_KEY)
   fail("ELEVENLABS_API_KEY is not set. export ELEVENLABS_API_KEY=… (and optionally ELEVENLABS_VOICE_ID, ELEVENLABS_MODEL).");
+const voiceName = values.voice ?? spec.voice.voice;
+if (voiceName.startsWith("clone:")) {
+  const name = voiceName.slice("clone:".length);
+  if (!fs.existsSync(`library/voice/${name}/voice.json`)) fail(`No cloned voice "${name}". Create it: npm run voice-ref -- ${name}`);
+  if (engine === "elevenlabs") fail(`${voiceName} is a Qwen3 cloned voice; use --engine qwen3`);
+}
 fs.mkdirSync(P.build, { recursive: true });
 fs.writeFileSync(P.narration, JSON.stringify(manifest, null, 2) + "\n");
 

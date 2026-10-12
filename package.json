@@ -11,10 +11,13 @@
   },
   "scripts": {
     "setup": "bash scripts/setup.sh",
-    "studio": "tsx scripts/sync.ts && remotion studio src/index.ts",
+    "studio": "vite --config studio/vite.config.ts",
     "new": "tsx scripts/new.ts",
+    "new-channel": "tsx scripts/new-channel.ts",
+    "new-style": "tsx scripts/new-style.ts",
     "check": "tsx scripts/check.ts",
     "voice": "tsx scripts/voice.ts",
+    "voice-ref": "uv run --with 'faster-whisper>=1.0' audio/voice_ref.py",
     "sheet": "tsx scripts/sheet.ts",
     "render": "tsx scripts/render.ts",
     "qc": "tsx scripts/qc.ts",
@@ -22,9 +25,12 @@
     "sync": "tsx scripts/sync.ts",
     "house-audio": "uv run audio/house_sfx.py && uv run audio/house_drive.py && uv run audio/house_music.py",
     "typecheck": "tsx scripts/sync.ts && tsc --noEmit",
-    "postinstall": "tsx scripts/sync.ts"
+    "postinstall": "tsx scripts/sync.ts",
+    "remotion-studio": "tsx scripts/sync.ts && remotion studio src/index.ts"
   },
   "dependencies": {
+    "@fontsource-variable/fraunces": "5.3.0",
+    "@fontsource-variable/inter-tight": "5.3.0",
     "@fontsource-variable/overpass": "5.3.0",
     "@fontsource-variable/overpass-mono": "5.3.0",
     "@remotion/cli": "4.0.534",
@@ -32,6 +38,8 @@
     "@remotion/layout-utils": "4.0.534",
     "@remotion/media": "^4.0.534",
     "@remotion/paths": "4.0.534",
+    "@remotion/player": "4.0.534",
+    "gsap": "3.15.0",
     "lucide-react": "1.55.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -43,9 +51,11 @@
     "@remotion/renderer": "4.0.534",
     "@types/node": "22.20.5",
     "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.3",
     "sharp": "^0.35.5",
     "tsx": "4.23.15",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vite": "8.3.0"
   },
   "repository": {
     "type": "git",

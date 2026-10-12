@@ -44,6 +44,7 @@ ElevenLabs' settings). Kokoro drafts ignore style; pace, pauses and short senten
 - **A chapter every 45–70 s.** Three or more chapters, so YouTube shows them. Each `chapter` segment
   sets `"chapter": "<title>"` (the YouTube chapter name) and uses a different `line` colour.
 - **Match the choreo to the scene.** Each preset lists the scene types it fits; the linter warns otherwise.
+  A `custom` scene takes any choreography: pick by intent, and the voice, music and stage follow.
 - **The same scene type four times in a row is a warning.** Diagrams are the exception: a sequence of
   `build` → `flow` → `failure` on the same diagram is the backbone of most videos.
 

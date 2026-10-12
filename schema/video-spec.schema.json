@@ -19,6 +19,37 @@
       "type": "string",
       "minLength": 1
     },
+    "channel": {
+      "description": "Key of channels/<id>/channel.json; defaults to studio.json defaultChannel",
+      "type": "string"
+    },
+    "style": {
+      "description": "Motion style (src/styles/<id>); defaults to the channel's style",
+      "type": "string"
+    },
+    "intro": {
+      "default": true,
+      "description": "The channel intro after the hook: false to skip, or { after: <segment id> } to move it",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "after": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]*$",
+              "description": "Lowercase identifier"
+            }
+          },
+          "required": [
+            "after"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
     "format": {
       "default": "landscape",
       "type": "string",
@@ -29,6 +60,7 @@
     },
     "theme": {
       "default": "dark",
+      "description": "Defaults to the channel's theme",
       "type": "string",
       "enum": [
         "dark",
@@ -49,6 +81,7 @@
       ]
     },
     "voice": {
+      "description": "Defaults come from the channel",
       "default": {},
       "type": "object",
       "properties": {
@@ -66,6 +99,7 @@
         },
         "voice": {
           "default": "Aiden",
+          "description": "Qwen3 speaker (\"Aiden\"), \"clone:<name>\" for a cloned voice, or a Kokoro voice",
           "type": "string"
         },
         "speed": {
@@ -78,6 +112,7 @@
       "additionalProperties": false
     },
     "music": {
+      "description": "Defaults come from the channel",
       "default": {},
       "type": "object",
       "properties": {
@@ -406,6 +441,7 @@
             "type": "string",
             "enum": [
               "cold-open",
+              "intro",
               "big-number",
               "myth",
               "failure",
@@ -427,7 +463,6 @@
             "maxLength": 40
           },
           "beats": {
-            "minItems": 1,
             "type": "array",
             "items": {
               "type": "object",
@@ -476,7 +511,7 @@
               ],
               "additionalProperties": false
             },
-            "description": "Narration for this segment, in order"
+            "description": "Narration for this segment, in order (empty only for the intro)"
           },
           "scene": {
             "oneOf": [
@@ -1768,7 +1803,7 @@
                     "type": "string",
                     "minLength": 2,
                     "maxLength": 30,
-                    "description": "e.g. @sainp7"
+                    "description": "e.g. @sainp7; defaults to the channel's handle"
                   },
                   "cta": {
                     "default": "Follow for more system design",
@@ -1787,6 +1822,123 @@
                   "handle"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "custom"
+                  },
+                  "component": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Za-z0-9]*$",
+                    "description": "Component file in videos/<id>/scenes/ (default export)"
+                  },
+                  "cues": {
+                    "default": {},
+                    "description": "Named moments → cue refs; the component receives them as frames",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                      "description": "A moment: \"start\", \"end\", a cue id, a beat id, optionally \".end\" and \"+/-seconds\""
+                    }
+                  },
+                  "props": {
+                    "default": {},
+                    "description": "Free data for the component",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  },
+                  "signage": {
+                    "default": [],
+                    "description": "The on-screen words the component shows, for the linter (word budget, caption check)",
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 60
+                    }
+                  },
+                  "line": {
+                    "description": "Accent colour; defaults from the choreography",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "actions": {
+                    "default": [],
+                    "description": "Extra sound accents on cues",
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^(start|end|[a-z0-9][a-z0-9_-]*(\\.end)?)([+-]\\d+(\\.\\d+)?)?$",
+                              "description": "When the action happens"
+                            },
+                            "do": {
+                              "type": "string",
+                              "const": "sfx"
+                            },
+                            "sound": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "do",
+                            "sound"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "component"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "intro"
+                  },
+                  "name": {
+                    "description": "Overrides the channel name",
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "tagline": {
+                    "description": "Overrides the channel tagline",
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "line": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Line colour (blue, orange, green, red, violet, yellow, teal) or a key of spec.lines"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
               }
             ]
           },
@@ -1795,7 +1947,7 @@
             "description": "Extra seconds of picture after the choreography's tail",
             "type": "number",
             "minimum": 0,
-            "maximum": 6
+            "maximum": 8
           },
           "transition": {
             "description": "Overrides the choreography's exit",

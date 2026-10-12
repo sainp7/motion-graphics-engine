@@ -2,12 +2,17 @@
  * Spec linter: the studio's editorial and technical rules, as code.
  * Errors block a render. Warnings are judgement calls Claude should consciously accept or fix.
  */
+import fs from "node:fs";
+import path from "node:path";
 import { CHOREO } from "../../src/choreo/presets";
+import { ROOT } from "./common";
 import { compile, Compiled } from "../../src/spec/compile";
 import { countWords, parseSay, parseText, plainText } from "../../src/spec/markup";
-import { VideoSpec, VideoSpecT, SegmentT } from "../../src/spec/schema";
+import type { VideoSpecT, SegmentT } from "../../src/spec/schema";
+import { channelIds, safeParseSpec } from "../../src/spec/channel";
+import { STYLE_TOKENS } from "../../src/style-tokens.generated";
 import type { TimingFile } from "../../src/spec/timing";
-import { LAYOUT, TYPE } from "../../src/design/tokens";
+import { LAYOUT } from "../../src/design/tokens";
 import { buildGeometry, edgeId } from "../../src/scenes/diagram/geometry";
 
 export type Finding = { level: "error" | "warn" | "info"; where: string; msg: string };
@@ -20,13 +25,25 @@ export const lint = (raw: unknown, timing: TimingFile | null): { findings: Findi
   const warn = (where: string, msg: string) => findings.push({ level: "warn", where, msg });
   const info = (where: string, msg: string) => findings.push({ level: "info", where, msg });
 
-  const parsed = VideoSpec.safeParse(raw);
+  const rawChannel = (raw as { channel?: string }).channel;
+  if (rawChannel && !channelIds().includes(rawChannel)) {
+    err("channel", `unknown channel "${rawChannel}" (channels: ${channelIds().join(", ") || "none"}); create channels/${rawChannel}/channel.json or npm run new-channel`);
+    return { findings };
+  }
+  const parsed = safeParseSpec(raw);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) err(issue.path.join(".") || "spec", issue.message);
     return { findings };
   }
   const spec = parsed.data;
   const compiled = compile(spec, timing);
+  const tokens = STYLE_TOKENS[compiled.style];
+  if (!tokens) {
+    err("style", `unknown style "${compiled.style}" (styles: ${Object.keys(STYLE_TOKENS).join(", ")})`);
+    return { findings };
+  }
+  const TYPE = tokens.type;
+  for (const s of spec.segments) if (!s.beats.length && s.scene.type !== "intro") err(s.id, "a segment needs at least one beat (only the intro is silent)");
   for (const w of compiled.warnings) {
     if (/unknown cue|Unknown line|not defined|defined twice/.test(w)) err(w.split(":")[0], w);
     else warn(w.split(":")[0], w);
@@ -68,6 +85,23 @@ export const lint = (raw: unknown, timing: TimingFile | null): { findings: Findi
     if (zoom < 0.8) warn(`diagrams.${id}`, `the full diagram needs zoom ${zoom.toFixed(2)} to fit; labels will be small. Tighten the layout or use focus/fit per segment.`);
     if (def.nodes.length > 10) warn(`diagrams.${id}`, `${def.nodes.length} stations: consider splitting into two diagrams (≤ 9 visible at once reads best)`);
   }
+
+  // ---- cloned voice
+  if (spec.voice.voice.startsWith("clone:")) {
+    const name = spec.voice.voice.slice("clone:".length);
+    const dir = path.join(ROOT, "library", "voice", name);
+    if (!fs.existsSync(path.join(dir, "voice.json"))) err("voice", `cloned voice "${name}" does not exist; run npm run voice-ref -- ${name}`);
+    else if (!fs.readdirSync(dir).some((f) => /\.(wav|flac)$/i.test(f)))
+      warn("voice", `cloned voice "${name}" has no recordings on this machine (they are git-ignored); npm run voice will fail until you record them`);
+  }
+
+  // ---- custom scenes are for signature moments, not for the whole video
+  const customs = spec.segments.filter((s) => s.scene.type === "custom");
+  const components = new Set(customs.map((s) => (s.scene.type === "custom" ? s.scene.component : "")));
+  if (components.size > 3)
+    warn("segments", `${components.size} custom scene components: keep one to three signature moments per video and build the rest from the scene library (or promote a recurring custom scene with extend-studio)`);
+  if (customs.length && spec.segments.length && customs.length / spec.segments.length > 0.4)
+    warn("segments", "more than 40% of segments are custom; the channel's consistency comes from the shared scenes");
 
   // ---- per segment
   let anyPause = false;
@@ -111,11 +145,19 @@ export const lint = (raw: unknown, timing: TimingFile | null): { findings: Findi
     if (sc.type === "list") texts.push(...(sc.title ? [sc.title] : []), ...sc.items.map((x) => x.text));
     if (sc.type === "compare") texts.push(sc.left.title, sc.right.title, ...sc.left.items.map((x) => x.text), ...sc.right.items.map((x) => x.text));
     if (sc.type === "outro") texts.push(sc.text);
+    if (sc.type === "custom") {
+      texts.push(...sc.signage);
+      const dir = path.join(ROOT, "videos", spec.id, "scenes");
+      if (![".tsx", ".ts", ".js"].some((ext) => fs.existsSync(path.join(dir, `${sc.component}${ext}`))))
+        err(where, `custom scene "${sc.component}" not found: create videos/${spec.id}/scenes/${sc.component}.tsx (React) or .js/.ts (seekable script), default export`);
+    }
     // headings and chapter titles name what is on screen ("Fix 1: coalesce the misses", "Why does it
     // collapse?"); they may echo the voice
     const headings = (sc.type === "code" || sc.type === "diagram") && sc.heading ? [sc.heading] : sc.type === "chapter" ? [sc.title] : [];
     const words = [...texts, ...headings].reduce((n, t) => n + countWords(t), 0);
-    if (words > choreo.text.maxWords) warn(where, `${words} words on screen; "${seg.choreo}" allows ${choreo.text.maxWords}. Signage, not sentences.`);
+    // custom scenes carry labels like a diagram does: twice the budget
+    const budget = sc.type === "custom" ? choreo.text.maxWords * 2 : choreo.text.maxWords;
+    if (words > budget) warn(where, `${words} words on screen; "${seg.choreo}" allows ${budget}. Signage, not sentences.`);
 
     // caption check: on-screen text must not transcribe the narration
     for (const t of texts) {
@@ -221,6 +263,14 @@ const sceneEvents = (cs: Compiled["segments"][number]): number[] => {
     case "code":
       s.actions.forEach((a) => push(a.at));
       push(6);
+      break;
+    case "intro":
+      push(0);
+      break;
+    case "custom":
+      Object.values(s.cues).forEach(push);
+      s.actions.forEach((a) => push(a.at));
+      push(4);
       break;
     case "outro":
       push(10);

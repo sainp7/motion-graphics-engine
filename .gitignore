@@ -2,7 +2,7 @@
 node_modules/
 out/
 .remotion/
-src/registry.generated.ts
+src/*.generated.ts
 
 # per-video generated audio and timing (npm run voice)
 public/videos/
@@ -21,6 +21,8 @@ library/voice/**/*.aiff
 
 # to keep unreleased episodes private while the repo is public, uncomment: commits only the
 # reference episode (CI and the skills use it)
+videos/*
+!videos/001-cache-stampede/
 
 # python
 __pycache__/

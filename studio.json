@@ -1,0 +1,4 @@
+{
+  "$comment": "Repo-level settings. defaultChannel is used by videos whose spec does not name a channel.",
+  "defaultChannel": "systems"
+}

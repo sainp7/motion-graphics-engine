@@ -89,5 +89,5 @@ fi
 printf "\n\033[1mReady.\033[0m Next:\n"
 echo "  npm run check -- 001-cache-stampede      # lint the reference episode"
 echo "  npm run voice -- 001-cache-stampede      # Qwen3-TTS narration (first run downloads the model)"
-echo "  npm run studio                           # preview"
+echo "  npm run studio                           # the review studio"
 echo "  claude  →  /studio:new-video <idea or links>"

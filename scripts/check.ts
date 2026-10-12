@@ -22,7 +22,7 @@ if (values.json) {
 const icon = { error: "✖", warn: "▲", info: "·" } as const;
 if (!values.quiet && compiled) {
   const fps = compiled.fps;
-  console.log(`\n${compiled.spec.title}  (${id}, ${compiled.theme}, ${compiled.draft ? "draft timing" : "voiced"})\n`);
+  console.log(`\n${compiled.spec.title}  (${id} · channel ${compiled.spec.channel ?? "none"} · style ${compiled.style} · ${compiled.theme} · ${compiled.draft ? "draft timing" : "voiced"})\n`);
   console.log("  start  len   choreo        scene       segment");
   for (const s of compiled.segments) {
     const ch = compiled.chapters.find((c) => c.frame === s.from);

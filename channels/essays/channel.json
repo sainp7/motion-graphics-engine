@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/channel.schema.json",
+  "id": "essays",
+  "name": "Field Notes",
+  "tagline": "How software really behaves",
+  "handle": "@sainp7",
+  "platforms": ["youtube"],
+  "style": "editorial",
+  "theme": "light",
+  "voice": { "engine": "qwen3", "voice": "Aiden" },
+  "music": { "track": "house-night-transit", "volume": 0.18 },
+  "intro": { "enabled": true, "seconds": 3.2, "line": "red", "formats": ["landscape"] },
+  "outro": { "cta": "Follow for more field notes" }
+}

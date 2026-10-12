@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/channel.schema.json",
+  "id": "systems",
+  "name": "Systems in Motion",
+  "tagline": "System design, explained in minutes",
+  "handle": "@sainp7",
+  "platforms": ["youtube"],
+  "style": "transit",
+  "theme": "dark",
+  "voice": { "engine": "qwen3", "voice": "Aiden" },
+  "music": { "track": "transit-drive", "volume": 0.22 },
+  "intro": { "enabled": true, "seconds": 3.5, "line": "orange", "formats": ["landscape"] },
+  "outro": { "cta": "Follow for more system design" }
+}

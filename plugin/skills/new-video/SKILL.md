@@ -20,12 +20,15 @@ otherwise keep moving.
 If a command fails because a tool, package or generated file is missing, run `npm run setup`
 (idempotent) and retry before anything else.
 ## 0. Orient (silent)
+- Which channel? `ls channels/` and `studio.json`. If the user names an account or the topic clearly
+  belongs to another channel, use `--channel <id>`; the channel fixes style, voice, music and intro
+  (see `styles-and-channels`). Read that channel's `channel.json`.
 - `ls videos/` → the next id is the next number plus a slug: `002-rate-limiting`.
 - Read the most recent video's `script.md` and spec segment list. Do not reuse its hook pattern or
   its segment order; the channel must not feel templated (YouTube demonetises repetitive content).
 
 ## 1. Brief → `videos/<id>/brief.md`
-Run `npm run new -- <id> "<working title>"`, then research. Delegate to the **researcher** agent
+Run `npm run new -- <id> "<working title>" [--channel <id>]`, then research. Delegate to the **researcher** agent
 for anything beyond a couple of lookups. The brief holds: the promise (what the viewer can explain
 after watching), verified key facts with sources, and which numbers are illustrative.
 **Nothing goes on screen or in narration unless the brief backs it.**
@@ -42,7 +45,10 @@ outro, 450–600 spoken words, 3–4 minutes. Give every block its intent (a cho
 **Gate 2** — show the script (words are cheap to change; visuals are not). Apply edits.
 
 ## 3. Spec → `videos/<id>/spec.json`
-Follow `spec-authoring`, `diagram-authoring`, `choreography` and `design-system`. Delegate to the
+Follow `spec-authoring`, `diagram-authoring`, `choreography` and `design-system`. If the idea has a
+moment the scene library cannot show well (circular geometry, many particles, a morph, kinetic type),
+make it a custom scene with `custom-scenes`: one to three per video, usually the hook or the core
+mechanism. Delegate to the
 **art-director** agent for long videos. The guardrail hook runs `npm run check` on every save;
 fix every error it reports. Then run `npm run check -- <id>` yourself and address each warning
 (fix it, or consciously accept it and say why).
@@ -59,8 +65,8 @@ RAM) rather than switching engines silently. Then `npm run check` again (timings
 real now: watch for dense or static segments) and `npm run sheet` again.
 
 ## 6. Preview
-Tell the user to scrub it in `npm run studio` (composition `<id>`) or watch
-`npm run render -- <id> --draft`. Take their notes, edit the spec, repeat 4–6.
+Tell the user to open `npm run studio` (pick the video; it plays with the timeline, script and
+check results beside it) or watch `npm run render -- <id> --draft`. Take their notes, edit the spec, repeat 4–6.
 
 ## 7. Final render → `npm run render -- <id>` (the spec's `theme`; `--theme light` or `--theme dark` overrides)
 Read `out/<id>/qc.md`. Every check must pass.

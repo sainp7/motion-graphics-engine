@@ -6,7 +6,12 @@ description: How to grow the studio when a spec cannot express an idea — add a
 # Extending the studio
 
 The library should grow from real needs: when a video needs something new, build it once, generally,
-and every later video can use it. Never write one-off code for a single video.
+and every later video can use it.
+
+**Custom scene or library scene?** A one-off signature moment goes in the video as a custom scene
+(`custom-scenes` skill): no studio change needed. When the same kind of custom scene is wanted a
+second time, promote it: generalise its props into a schema, move it to `src/scenes/`, and follow
+"Add a scene type" below. The custom version is the prototype.
 
 ## Before you build
 - Can existing pieces do it? (A focus + dim + badge often beats a new component.)

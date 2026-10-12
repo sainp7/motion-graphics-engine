@@ -3,7 +3,8 @@
  * Guardrail hook (PostToolUse on Write/Edit).
  *
  *   videos/<id>/spec.json   → runs `npm run check` for that video; errors are fed back to Claude
- *   src/**\/*.tsx outside src/design → rejects raw colours, CSS animations and randomness
+ *   src/**\/*.tsx outside src/design, and videos/<id>/scenes/*.tsx (custom scenes)
+ *                           → rejects raw colours, CSS animations and randomness
  *
  * Exit 2 shows stderr to Claude so it fixes the problem in the same turn.
  * Anything else (or a project without the studio scripts) passes silently.
@@ -39,7 +40,9 @@ if (spec) {
   process.exit(0);
 }
 
-if (/^src\/.*\.tsx?$/.test(rel) && !rel.startsWith("src/design/") && fs.existsSync(path.join(root, rel))) {
+const tokenFile = rel.startsWith("src/design/") || /^src\/styles\/[^/]+\/tokens\.ts$/.test(rel); // palettes live here
+const designCode = (/^src\/.*\.tsx?$/.test(rel) && !tokenFile) || /^videos\/[^/]+\/scenes\/.*\.(tsx?|js)$/.test(rel);
+if (designCode && fs.existsSync(path.join(root, rel))) {
   const text = fs.readFileSync(path.join(root, rel), "utf8");
   const problems = [];
   text.split("\n").forEach((line, i) => {

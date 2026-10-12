@@ -1,4 +1,5 @@
 import { Config } from "@remotion/cli/config";
+import { webpackOverride } from "./src/webpack-override";
 
 // Renders are deterministic and local. These defaults favour YouTube uploads:
 // H.264 at a visually lossless CRF, yuv420p for compatibility.
@@ -11,3 +12,4 @@ Config.setColorSpace("bt709");
 Config.setOverwriteOutput(true);
 Config.setEntryPoint("src/index.ts");
 Config.setPublicDir("public");
+Config.overrideWebpackConfig(webpackOverride);

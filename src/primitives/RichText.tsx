@@ -1,4 +1,5 @@
 import React from "react";
+import { activeTokens } from "../design/style-tokens";
 import { useTheme } from "../design/theme";
 import { LAYOUT, LineColor } from "../design/tokens";
 import { parseText } from "../spec/markup";
@@ -29,6 +30,30 @@ export const RichText: React.FC<Props> = ({ text, accent, plate = 1, strike, sca
     <>
       {runs.map((r, i) => {
         if (r.kind === "text") return <span key={i}>{r.text}</span>;
+        if (r.kind === "plate" && activeTokens().plate === "marker") {
+          // a highlighter stroke under the lower half of the word; the text stays ink
+          const c = video.lineColor(r.line, accent);
+          return (
+            <span key={i} style={{ position: "relative", display: "inline-block", isolation: "isolate", padding: "0 0.06em", fontStyle: "italic" }}>
+              <span
+                style={{
+                  position: "absolute",
+                  left: "-0.02em",
+                  right: "-0.02em",
+                  top: "56%",
+                  bottom: "2%",
+                  backgroundColor: line(c),
+                  opacity: 0.42,
+                  borderRadius: "0.08em",
+                  transformOrigin: "left center",
+                  scale: `${plate} 1`,
+                  zIndex: -1,
+                }}
+              />
+              {r.text}
+            </span>
+          );
+        }
         if (r.kind === "plate") {
           const c = video.lineColor(r.line, accent);
           return (

@@ -1,5 +1,5 @@
 /**
- * npm run render -- <video-id> [--theme light] [--draft]
+ * npm run render -- <video-id> [--theme light] [--style editorial] [--draft]
  *
  * Full render, then audio mastering and a QC report:
  *   out/<id>/<id>-<theme>.mp4     YouTube-ready: H.264, AAC 320k, loudness -14 LUFS, true peak below -1 dBTP
@@ -15,7 +15,7 @@ import { lint } from "./lib/lint";
 import { qc } from "./qc";
 import { sync } from "./sync";
 
-const { values, positionals } = cli({ theme: { type: "string" }, draft: { type: "boolean" }, remaster: { type: "boolean" } });
+const { values, positionals } = cli({ theme: { type: "string" }, style: { type: "string" }, draft: { type: "boolean" }, remaster: { type: "boolean" } });
 const id = requireId(positionals);
 const raw = loadRawSpec(id);
 const timing = loadTiming(id);
@@ -25,16 +25,16 @@ if (errors.length) {
   for (const e of errors) console.error(`  ✖ ${e.where}: ${e.msg}`);
   fail("spec has errors; run npm run check");
 }
-const c = compile(raw as never, timing, { theme: values.theme as "dark" | "light" | undefined });
+const c = compile(raw as never, timing, { theme: values.theme as "dark" | "light" | undefined, style: values.style });
 if (c.draft && !values.draft) fail(`narration timing is estimated. Run \`npm run voice -- ${id}\` first, or pass --draft for a silent preview.`);
 
 const P = paths(id);
 fs.mkdirSync(P.out, { recursive: true });
 sync(true);
-const base = `${id}-${c.theme}${values.draft ? "-draft" : ""}`;
+const base = `${id}-${values.style ? `${c.style}-` : ""}${c.theme}${values.draft ? "-draft" : ""}`;
 const rawOut = path.join(P.out, `${base}.raw.mp4`);
 const final = path.join(P.out, `${base}.mp4`);
-const props = JSON.stringify(values.theme ? { theme: values.theme } : {});
+const props = JSON.stringify({ ...(values.theme ? { theme: values.theme } : {}), ...(values.style ? { style: values.style } : {}) });
 if (values.remaster && !fs.existsSync(rawOut)) fail(`no raw render at ${rel(rawOut)}; render first`);
 if (!values.remaster) {
 console.log(`rendering ${fmtTime(c.durationInFrames / c.fps)} (${c.durationInFrames} frames)…`);
